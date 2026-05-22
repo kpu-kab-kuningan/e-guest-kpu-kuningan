@@ -85,22 +85,20 @@
         .img-table:hover {
             transform: scale(1.1);
         }
-
-	/* Cari bagian .table-responsive di dalam <style> lalu sesuaikan menjadi seperti ini */
-	.table-responsive {
-    		display: block;
-    		width: 100% !important;
-    		overflow-x: auto !important;
-    		-webkit-overflow-scrolling: touch; /* Biar scroll di iPhone/Android terasa mulus/smooth */
-    		border: 1px solid #dee2e6;
-    		border-radius: 12px;
-    		margin-bottom: 1rem;
-	}
-
-/* Tambahkan min-width pada tabel agar saat layar HP sekecil apapun, data tidak menyusut paksa */
-.table-responsive table {
-    min-width: 1000px; /* Memaksa tabel mempertahankan ruang lebar agar scroll bar aktif */
-}
+        /* Styling khusus tombol aksi bulat sempurna */
+        .btn-round {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            transition: all 0.2s;
+        }
+        .btn-round:hover {
+            transform: scale(1.1);
+        }
     </style>
 </head>
 <body>
@@ -153,7 +151,7 @@
 
                             <div class="col-12">
                                 <label class="form-label fw-semibold text-secondary">Nama Lengkap</label>
-                                <input type="text" class="form-control" id="nama" required placeholder="Masukkan nama lengkap">
+                                <input type="text" class="form-control" id="nama" required placeholder="Masukkan nama sesuai KTP">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold text-secondary">Instansi / Asal</label>
@@ -167,13 +165,13 @@
                                 <label class="form-label fw-semibold text-secondary">Pejabat / Sub-Bagian Tujuan</label>
                                 <select class="form-select" id="tujuan" required>
                                     <option value="" disabled selected>Pilih Sub-Bagian Tujuan...</option>
-                                    <option value="Ketua / Anggota Komisioner KPU">Ketua / Anggota Komisioner KPU</option>
-                                    <option value="Sekretaris KPU Kab. Kuningan">Sekretaris KPU Kab. Kuningan</option>
                                     <option value="Sub-Bagian Keuangan, Umum, dan Logistik">Sub-Bagian Keuangan, Umum, dan Logistik</option>
                                     <option value="Sub-Bagian Teknis Penyelenggaraan Pemilu & Hupmas">Sub-Bagian Teknis Penyelenggaraan Pemilu & Hupmas</option>
                                     <option value="Sub-Bagian Perencanaan, Data, dan Informasi">Sub-Bagian Perencanaan, Data, dan Informasi</option>
                                     <option value="Sub-Bagian Hukum dan Sumber Daya Manusia">Sub-Bagian Hukum dan Sumber Daya Manusia</option>
-</select>
+                                    <option value="Sekretaris KPU Kab. Kuningan">Sekretaris KPU Kab. Kuningan</option>
+                                    <option value="Ketua / Anggota Komisioner KPU">Ketua / Anggota Komisioner KPU</option>
+                                </select>
                             </div>
                             <div class="col-12">
                                 <label class="form-label fw-semibold text-secondary">Keperluan / Agenda Kunjungan</label>
@@ -216,39 +214,38 @@
                 </div>
             </div>
 
-<div class="card main-card bg-white p-4">
-    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mb-4">
-        <h5 class="fw-bold text-dark m-0"><i class="bi bi-table text-primary me-2"></i>Buku Tamu Digital</h5>
-        <div class="d-flex gap-2">
-            <button class="btn btn-success px-3" id="btn-export" style="border-radius: 8px; font-weight: 600;">
-                <i class="bi bi-file-earmark-zip-fill me-1"></i>Unduh ZIP (Excel & Foto)
-            </button>
-            <button class="btn btn-outline-danger px-3" onclick="clearData()" style="border-radius: 8px;">
-                <i class="bi bi-trash3-fill"></i> Bersihkan Data
-            </button>
-        </div>
-    </div>
+            <div class="card main-card bg-white p-4">
+                <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mb-4">
+                    <h5 class="fw-bold text-dark m-0"><i class="bi bi-table text-primary me-2"></i>Log Rekapitulasi Tamu</h5>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-success px-3" id="btn-export" style="border-radius: 8px; font-weight: 600;">
+                            <i class="bi bi-file-earmark-zip-fill me-1"></i>Unduh ZIP (Excel & Foto)
+                        </button>
+                        <button class="btn btn-outline-danger px-3" onclick="openPinModalForClear()" style="border-radius: 8px;">
+                            <i class="bi bi-trash3-fill"></i> Bersihkan Data
+                        </button>
+                    </div>
+                </div>
 
-    <div class="table-responsive">
-        <table class="table table-hover align-middle bg-white m-0">
-            <thead class="table-dark">
-                <tr>
-                    <th class="text-center align-middle" style="width: 60px;">No</th>
-                    <th class="text-center align-middle" style="width: 80px;">Foto</th>
-                    <th class="text-center align-middle" style="width: 160px;">Waktu Kunjungan</th>
-                    <th class="text-center align-middle">Nama Lengkap</th>
-                    <th class="text-center align-middle">Instansi / Asal</th>
-                    <th class="text-center align-middle">No. Whatsapp</th>
-                    <th class="text-center align-middle">Tujuan</th>
-                    <th class="text-center align-middle">Keperluan</th>
-                    <th class="text-center align-middle" style="width: 110px;">Aksi</th>
-                </tr>
-            </thead>
-            <tbody id="tabel-tamu-body">
-                </tbody>
-        </table>
-    </div>
-</div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle bg-white border">
+                        <thead class="table-dark">
+                            <tr>
+                                <th class="text-center align-middle" style="width: 60px;">No</th>
+                                <th class="text-center align-middle" style="width: 80px;">Foto</th>
+                                <th class="text-center align-middle" style="width: 160px;">Waktu Kunjungan</th>
+                                <th class="text-center align-middle">Nama Lengkap</th>
+                                <th class="text-center align-middle">Instansi / Asal</th>
+                                <th class="text-center align-middle">No. Whatsapp</th>
+                                <th class="text-center align-middle">Tujuan</th>
+                                <th class="text-center align-middle">Keperluan</th>
+                                <th class="text-center align-middle" style="width: 110px;">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabel-tamu-body">
+                            </tbody>
+                    </table>
+                </div>
             </div>
             
         </div>
@@ -265,7 +262,30 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<div class="modal fade" id="pinModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+            <div class="modal-header bg-dark text-white p-3 border-0" style="border-radius: 16px 16px 0 0;">
+                <h6 class="modal-title fw-bold"><i class="bi bi-shield-lock-fill me-2"></i>PIN Pengaman Internal</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <p class="small text-muted mb-4">Aksi ini hanya diperuntukkan bagi internal KPU. Silakan masukkan PIN Pengaman.</p>
+                <input type="password" id="input-pin" class="form-control form-control-lg text-center fw-bold fs-4" maxlength="4" placeholder="••••" style="letter-spacing: 0.5em; border-radius: 10px; border-color: #dee2e6;">
+                
+                <input type="hidden" id="pin-action" value="">
+                <input type="hidden" id="pin-index" value="">
+                
+                <div id="pin-error" class="text-danger small mt-2 d-none">PIN salah, silakan coba lagi.</div>
+            </div>
+            <div class="modal-footer p-2 border-0">
+                <button type="button" class="btn btn-primary w-100 py-2" id="btn-verify-pin" style="background-color:#4f46e5; border:none; border-radius:8px; font-weight:600;">Verifikasi PIN</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bundle.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
