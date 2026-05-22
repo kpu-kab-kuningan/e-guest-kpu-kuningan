@@ -1,8 +1,9 @@
 // ==========================================
 // KUNCI INTEGRASI CLOUD GOOGLE WORKSPACE
 // ==========================================
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-PTn_rNa5-t5uYyO_9LKtZyDbb4b2DhKZ9Cdeeluh1QSQMrS_cVQoX5-EfJWF_Rl2/exec";
-const PIN_KEAMANAN_KPU = "657139"; // Silakan ganti PIN rahasia Peserta di sini
+// Link GAS tetap dipertahankan meskipun untuk solusi localStorage ini belum kita pakai penuh
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxjkSV5Xttfq0W-g-0463y4twYwgaYiFYC9_SvjySWkjOMPjNo3lzK0wn1ms5GGWpdAog/exec";
+const PIN_KEAMANAN_KPU = "2324"; // PIN rahasia Peserta
 
 // Inisialisasi Elemen HTML
 const video = document.getElementById('video');
@@ -13,9 +14,15 @@ const btnRetry = document.getElementById('btn-retry');
 const form = document.getElementById('guest-form');
 const btnExport = document.getElementById('btn-export');
 
+// Inisialisasi Elemen Modal PIN
+const pinModal = new bootstrap.Modal(document.getElementById('pinModal'));
+const inputPin = document.getElementById('input-pin');
+const btnVerifyPin = document.getElementById('btn-verify-pin');
+const pinError = document.getElementById('pin-error');
+const inputPinAction = document.getElementById('pin-action');
+const inputPinIndex = document.getElementById('pin-index');
+
 let tumpukanFotoBase64 = "";
-let memoriCloudLokal = []; // Menyimpan salinan data dari cloud untuk proses edit/hapus berkala
-let keyWaktuEditCloud = ""; // Menyimpan kunci waktu data yang sedang di-edit
 
 // 1. Jalankan Kamera Otomatis Saat Aplikasi Dibuka
 navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false })
@@ -42,12 +49,11 @@ btnRetry.addEventListener('click', () => {
     photoPreview.style.display = 'none';
     video.style.display = 'block';
     btnSnap.style.display = 'inline-block';
-    btnRetry.style.none;
     btnRetry.style.display = 'none';
 });
 
-// 4. Manajemen Submit Form (Tambah Baru / Edit di Cloud)
-form.addEventListener('submit', async (e) => {
+// 4. Manajemen Submit Form (Tambah Baru / Simpan Hasil Edit ke LocalStorage)
+form.addEventListener('submit', (e) => {
     e.preventDefault();
 
     if (!tumpukanFotoBase64) {
@@ -55,10 +61,11 @@ form.addEventListener('submit', async (e) => {
     }
 
     const editIndex = document.getElementById('edit-index').value;
+    const listTamu = JSON.parse(localStorage.getItem('kpu_guestbook')) || [];
 
     const dataTamu = {
-        action: editIndex !== "" ? "EDIT" : "ADD",
-        waktu: editIndex !== "" ? keyWaktuEditCloud : new Date().toLocaleString('id-ID'),
+        waktu: editIndex !== "" ? listTamu[editIndex].waktu : new Date().toLocaleString('id-ID'),
+        tanggalOnly: editIndex !== "" ? listTamu[editIndex].tanggalOnly : new Date().toLocaleDateString('id-ID'),
         nama: document.getElementById('nama').value,
         instansi: document.getElementById('instansi').value,
         whatsapp: document.getElementById('whatsapp').value,
@@ -67,142 +74,167 @@ form.addEventListener('submit', async (e) => {
         foto: tumpukanFotoBase64
     };
 
-    const btnSubmit = document.getElementById('btn-submit');
-    const originalBtnText = btnSubmit.innerHTML;
-    btnSubmit.disabled = true;
-    btnSubmit.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Memproses Cloud...`;
-
-    try {
-        const response = await fetch(SCRIPT_URL, {
-            method: 'POST',
-            body: JSON.stringify(dataTamu)
-        });
-        
-        const hasil = await response.json();
-        if (hasil.status !== 'success') throw new Error(hasil.message);
-
-        alert(`✓ Sukses! ${dataTamu.action === "EDIT" ? "Data berhasil diperbarui" : "Data baru tercatat"} di Cloud KPU.`);
-        cancelEdit();
-        loadDashboard();
-
-    } catch (error) {
-        console.error("Error sinkronisasi cloud:", error);
-        alert("⚠️ Gagal memproses data ke Cloud Google. Periksa koneksi internet.");
-    } finally {
-        btnSubmit.disabled = false;
-        btnSubmit.innerHTML = originalBtnText;
+    if (editIndex !== "") {
+        // Mode Edit Data
+        listTamu[editIndex] = dataTamu;
+        alert("✓ Data kunjungan berhasil diperbarui di LocalStorage!");
+    } else {
+        // Mode Data Baru
+        listTamu.push(dataTamu);
+        alert("✓ Data kunjungan berhasil disimpan di LocalStorage!");
     }
+
+    localStorage.setItem('kpu_guestbook', JSON.stringify(listTamu));
+    cancelEdit();
 });
 
-// Fungsi bantuan konversi link gambar drive
-function convertDriveUrlToDirect(url) {
-    if (!url || url === "Tidak Ada Foto") return "https://placehold.co/100x100?text=No+Photo";
-    if (url.startsWith("data:image")) return url;
-    const match = url.match(/\/d\/([^\/]+)/) || url.match(/id=([^&]+)/);
-    return match && match[1] ? `https://docs.google.com/uc?export=view&id=${match[1]}` : url;
-}
+// 5. Muat KPI Dashboard & Isi Tabel (Fix Masalah Foto Error)
+function loadDashboard() {
+    const listTamu = JSON.parse(localStorage.getItem('kpu_guestbook')) || [];
+    const todayStr = new Date().toLocaleDateString('id-ID');
 
-// 5. Muat KPI Dashboard & Isi Tabel LANGSUNG DARI CLOUD SPREADSHEET
-async function loadDashboard() {
+    // Hitung Tamu Hari Ini
+    const tamuHariIni = listTamu.filter(item => item.tanggalOnly === todayStr).length;
+
+    // Perbarui KPI Card
+    document.getElementById('dash-total').textContent = listTamu.length;
+    document.getElementById('dash-today').textContent = tamuHariIni;
+
     const tbody = document.getElementById('tabel-tamu-body');
-    tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary" role="status"></span> Mengambil data dari Cloud KPU...</td></tr>`;
+    tbody.innerHTML = "";
 
-    try {
-        const response = await fetch(SCRIPT_URL);
-        const hasil = await response.json();
-        if (hasil.status !== 'success') throw new Error(hasil.message);
-
-        memoriCloudLokal = hasil.data; 
-        const todayStr = new Date().toLocaleDateString('id-ID');
-
-        const tamuHariIni = memoriCloudLokal.filter(item => item.waktu && item.waktu.includes(todayStr)).length;
-        document.getElementById('dash-total').textContent = memoriCloudLokal.length;
-        document.getElementById('dash-today').textContent = tamuHariIni;
-
-        tbody.innerHTML = "";
-
-        if (memoriCloudLokal.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted py-4">Belum ada data kunjungan tamu di Cloud.</td></tr>`;
-            return;
-        }
-
-        memoriCloudLokal.forEach((item, index) => {
-            const nomorUrut = index + 1;
-            const linkFotoDirect = convertDriveUrlToDirect(item.foto);
-            
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td class="text-center fw-bold text-secondary">${nomorUrut}</td>
-                <td class="text-center">
-                    <img src="${linkFotoDirect}" class="img-table" onclick="viewPhoto('${linkFotoDirect}')" onerror="this.src='https://placehold.co/100x100?text=Error+Image'">
-                </td>
-                <td class="small fw-semibold text-secondary text-center">${item.waktu}</td>
-                <td class="fw-bold">${item.nama}</td>
-                <td><span class="badge bg-light text-dark border">${item.instansi}</span></td>
-                <td>${item.whatsapp}</td>
-                <td class="small">${item.tujuan}</td>
-                <td>${item.keperluan}</td>
-                <td>
-                    <div class="d-flex justify-content-center gap-2">
-                        <button class="btn btn-warning btn-round text-dark shadow-sm" onclick="editDataCloud(${index})" title="Edit Data">
-                            <i class="bi bi-pencil-fill"></i>
-                        </button>
-                        <button class="btn btn-danger btn-round shadow-sm" onclick="deleteDataCloud(${index})" title="Hapus Data">
-                            <i class="bi bi-trash-fill"></i>
-                        </button>
-                    </div>
-                </td>
-            `;
-            tbody.appendChild(tr);
-        });
-    } catch (error) {
-        console.error("Gagal memuat dashboard cloud:", error);
-        tbody.innerHTML = `<tr><td colspan="9" class="text-center text-danger py-4">⚠️ Gagal memuat data dari Cloud KPU. Silakan periksa jaringan internet tablet.</td></tr>`;
-    }
-}
-
-// 6. Fungsi Edit Data (DILINDUNGI PIN)
-function editDataCloud(index) {
-    const inputPin = prompt("🔑 KHUSUS INTERNAL KPU KUNINGAN\nMasukkan PIN Pengaman untuk mengubah data kunjungan:");
-    
-    if (inputPin === null) return; // Klik cancel
-    if (inputPin !== PIN_KEAMANAN_KPU) {
-        alert("❌ PIN Salah! Akses ditolak.");
+    if (listTamu.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted py-4">Belum ada data kunjungan tamu.</td></tr>`;
         return;
     }
 
-    const item = memoriCloudLokal[index];
+    // Render data berurutan dari Terlama ke Terbaru (Index 0 tetap di paling atas)
+    listTamu.forEach((item, index) => {
+        const nomorUrut = index + 1;
+        const tr = document.createElement('tr');
+        
+        // Memastikan tag img menggunakan data Base64 valid dan memiliki fallback error image
+        tr.innerHTML = `
+            <td class="text-center fw-bold text-secondary">${nomorUrut}</td>
+            <td class="text-center">
+                <img src="${item.foto}" class="img-table" onclick="viewPhoto('${item.foto}')" onerror="this.src='https://placehold.co/100x100?text=Error+Image'">
+            </td>
+            <td class="small fw-semibold text-secondary text-center">${item.waktu}</td>
+            <td class="fw-bold">${item.nama}</td>
+            <td><span class="badge bg-light text-dark border">${item.instansi}</span></td>
+            <td>${item.whatsapp}</td>
+            <td class="small">${item.tujuan}</td>
+            <td>${item.keperluan}</td>
+            <td>
+                <div class="d-flex justify-content-center gap-2">
+                    <button class="btn btn-warning btn-round text-dark shadow-sm" onclick="openPinModal('EDIT', ${index})" title="Edit Data">
+                        <i class="bi bi-pencil-fill"></i>
+                    </button>
+                    <button class="btn btn-danger btn-round shadow-sm" onclick="openPinModal('DELETE', ${index})" title="Hapus Data">
+                        <i class="bi bi-trash-fill"></i>
+                    </button>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
 
+// 6. Logika Modal PIN untuk Verifikasi Aksi
+function openPinModal(action, index) {
+    inputPinAction.value = action;
+    inputPinIndex.value = index;
+    inputPin.value = ""; // Reset input PIN
+    pinError.classList.add('d-none'); // Sembunyikan error lama
+    pinModal.show();
+}
+
+// Tambahan: PIN Modal untuk tombol Bersihkan Data
+function openPinModalForClear() {
+    inputPinAction.value = 'CLEAR_ALL';
+    inputPinIndex.value = ''; // Tidak perlu index
+    inputPin.value = "";
+    pinError.classList.add('d-none');
+    pinModal.show();
+}
+
+btnVerifyPin.addEventListener('click', () => {
+    const enteredPin = inputPin.value;
+    const action = inputPinAction.value;
+    const index = inputPinIndex.value;
+
+    if (enteredPin === PIN_KEAMANAN_KPU) {
+        pinModal.hide(); // Sembunyikan modal jika PIN benar
+        
+        // Eksekusi aksi yang tertunda berdasarkan jenis aksi
+        if (action === 'EDIT') {
+            executeEditData(index);
+        } else if (action === 'DELETE') {
+            executeDeleteData(index);
+        } else if (action === 'CLEAR_ALL') {
+            executeClearData();
+        }
+    } else {
+        // PIN Salah, tampilkan pesan error dalam modal
+        pinError.classList.remove('d-none');
+        inputPin.value = ""; // Bersihkan input agar user mengetik ulang
+    }
+});
+
+// Eksekusi Hapus Data Lokal
+function executeDeleteData(index) {
+    if (confirm("Apakah Peserta yakin ingin menghapus data tamu ini dari LocalStorage?")) {
+        const listTamu = JSON.parse(localStorage.getItem('kpu_guestbook')) || [];
+        listTamu.splice(index, 1);
+        localStorage.setItem('kpu_guestbook', JSON.stringify(listTamu));
+        loadDashboard();
+    }
+}
+
+// Eksekusi Edit Data Lokal
+function executeEditData(index) {
+    const listTamu = JSON.parse(localStorage.getItem('kpu_guestbook')) || [];
+    const item = listTamu[index];
+
+    // Isi Form dengan data lama
     document.getElementById('edit-index').value = index;
-    keyWaktuEditCloud = item.waktu; // Simpan tanda pengenal waktu data cloud
-
     document.getElementById('nama').value = item.nama;
     document.getElementById('instansi').value = item.instansi;
     document.getElementById('whatsapp').value = item.whatsapp;
     document.getElementById('tujuan').value = item.tujuan;
     document.getElementById('keperluan').value = item.keperluan;
     
-    tumpukanFotoBase64 = convertDriveUrlToDirect(item.foto);
+    // Tampilkan kembali foto lama ke area preview kamera
+    tumpukanFotoBase64 = item.foto;
     video.style.display = 'none';
     photoPreview.src = tumpukanFotoBase64;
     photoPreview.style.display = 'block';
     btnSnap.style.display = 'none';
     btnRetry.style.display = 'inline-block';
 
-    document.getElementById('form-title').innerHTML = `<i class="bi bi-pencil-square text-warning"></i> Edit Data Cloud: ${item.nama}`;
+    // Ubah UI Form ke mode edit
+    document.getElementById('form-title').innerHTML = `<i class="bi bi-pencil-square text-warning"></i> Edit Data Lokal: ${item.nama}`;
     document.getElementById('btn-submit').className = "btn btn-warning w-100 py-2 fw-bold text-dark";
-    document.getElementById('btn-submit').innerHTML = `<i class="bi bi-save-fill me-2"></i>Perbarui Kehadiran Cloud`;
+    document.getElementById('btn-submit').innerHTML = `<i class="bi bi-save-fill me-2"></i>Perbarui Kehadiran Lokal`;
     document.getElementById('btn-cancel-edit').style.display = "block";
 
+    // Pindah Tab Otomatis ke tab formulir
     const formTab = new bootstrap.Tab(document.getElementById('pills-form-tab'));
     formTab.show();
+}
+
+// Eksekusi Bersihkan Data Lokal
+function executeClearData() {
+    if (confirm("Peringatan! Menghapus seluruh data dari LocalStorage tidak dapat dibatalkan. Lanjutkan?")) {
+        localStorage.removeItem('kpu_guestbook');
+        loadDashboard();
+    }
 }
 
 // 7. Fungsi Batalkan Edit
 function cancelEdit() {
     form.reset();
     document.getElementById('edit-index').value = "";
-    keyWaktuEditCloud = "";
     tumpukanFotoBase64 = "";
     photoPreview.style.display = 'none';
     video.style.display = 'block';
@@ -216,87 +248,51 @@ function cancelEdit() {
     document.getElementById('btn-cancel-edit').style.display = "none";
 }
 
-// 8. Fungsi Hapus Data Cloud (DILINDUNGI PIN)
-async function deleteDataCloud(index) {
-    const inputPin = prompt("🔑 KHUSUS INTERNAL KPU KUNINGAN\nMasukkan PIN Pengaman untuk MENGHAPUS data permanen dari Google Sheets & Drive:");
-    
-    if (inputPin === null) return;
-    if (inputPin !== PIN_KEAMANAN_KPU) {
-        alert("❌ PIN Salah! Akses penghapusan ditolak.");
-        return;
-    }
-
-    const item = memoriCloudLokal[index];
-    if (!confirm(`Apakah Peserta yakin ingin menghapus kunjungan dari "${item.nama}" secara permanen?`)) return;
-
-    const tbody = document.getElementById('tabel-tamu-body');
-    tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4"><span class="spinner-border spinner-border-sm text-danger" role="status"></span> Menghapus data dari Cloud...</td></tr>`;
-
-    try {
-        const response = await fetch(SCRIPT_URL, {
-            method: 'POST',
-            body: JSON.stringify({
-                action: "DELETE",
-                waktu: item.waktu
-            })
-        });
-
-        const hasil = await response.json();
-        if (hasil.status !== 'success') throw new Error(hasil.message);
-
-        alert("✓ Sukses! Data & Foto berhasil dimusnahkan dari Cloud Google.");
-        loadDashboard();
-
-    } catch (error) {
-        console.error("Gagal menghapus data:", error);
-        alert("⚠️ Gagal menghapus data dari server Cloud. Periksa koneksi internet.");
-        loadDashboard();
-    }
-}
-
-// 9. Preview Foto Besar
+// 8. Preview Foto Besar
 function viewPhoto(base64Src) {
     document.getElementById('modal-img-view').src = base64Src;
     const photoModal = new bootstrap.Modal(document.getElementById('photoModal'));
     photoModal.show();
 }
 
-// 10. Bersihkan Seluruh Database Perangkat (DILINDUNGI PIN)
-function clearData() {
-    const inputPin = prompt("🔑 Masukkan PIN Pengaman KPU untuk membersihkan Local Storage:");
-    if (inputPin === PIN_KEAMANAN_KPU) {
-        localStorage.removeItem('kpu_guestbook');
-        alert("Local storage dibersihkan.");
-        loadDashboard();
-    } else {
-        alert("Akses ditolak.");
-    }
-}
-
-// 11. GENERATE ZIP DATA CLOUD
+// 9. GENERATE ZIP OFFLINE (Sesuai Permintaan)
 btnExport.addEventListener('click', () => {
-    if (memoriCloudLokal.length === 0) return alert("Tidak ada data kunjungan untuk diekspor.");
+    const listTamu = JSON.parse(localStorage.getItem('kpu_guestbook')) || [];
+    if (listTamu.length === 0) return alert("Tidak ada data kunjungan untuk diekspor.");
 
     const zip = new JSZip();
-    let csvContent = "\uFEFFsep=,\nWaktu Kunjungan,Nama Lengkap,Instansi / Asal,No. Whatsapp,Tujuan,Keperluan,Tautan Foto Cloud\n";
 
-    memoriCloudLokal.forEach((item, index) => {
-        let row = `"${item.waktu}","${item.nama.replace(/"/g, '""')}","${item.instansi.replace(/"/g, '""')}","${item.whatsapp}","${item.tujuan.replace(/"/g, '""')}","${item.keperluan.replace(/"/g, '""')}","${item.foto}"`;
+    // Mengunci urutan kolom A sampai F yang rapi dan paten untuk Microsoft Excel
+    let csvContent = "\uFEFFsep=,\nWaktu Kunjungan,Nama Lengkap,Instansi / Asal,No. Whatsapp,Tujuan,Keperluan\n";
+    
+    const folderFoto = zip.folder("Foto_Tamu");
+
+    listTamu.forEach((item, index) => {
+        const nomorUrut = index + 1;
+        
+        // Bersihkan nama dari karakter terlarang sistem berkas Windows/Android
+        const namaBersih = item.nama.replace(/[/\\?%*:|"<>]/g, '-');
+        const namaFileFoto = `${nomorUrut}_${namaBersih}`;
+
+        // Mengurutkan baris teks tepat pada kolom A ke F tanpa melenceng
+        let row = `"${item.waktu}","${item.nama.replace(/"/g, '""')}","${item.instansi.replace(/"/g, '""')}","${item.whatsapp}","${item.tujuan.replace(/"/g, '""')}","${item.keperluan.replace(/"/g, '""')}"`;
         csvContent += row + "\n";
+
+        // Ekstrak berkas gambar ke folder dalam ZIP
+        if (item.foto && item.foto.includes("base64,")) {
+            const rawBase64 = item.foto.split('base64,')[1];
+            folderFoto.file(`${namaFileFoto}.jpg`, rawBase64, { base64: true });
+        }
     });
 
-    zip.file("Data_Tamu_Cloud_KPU_Kuningan.csv", csvContent);
+    zip.file("Data_Tamu_KPU_Kuningan.csv", csvContent);
+
     zip.generateAsync({ type: "blob" }).then(function(content) {
         const link = document.createElement("a");
         link.href = URL.createObjectURL(content);
-        link.download = `Rekap_Buku_Tamu_Cloud_${Date.now()}.zip`;
+        link.download = `Rekap_Buku_Tamu_KPU_Kuningan_${Date.now()}.zip`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
     });
-});
-
-// Jalankan fungsi dashboard saat halaman selesai dimuat pertama kali
-document.addEventListener("DOMContentLoaded", () => {
-    loadDashboard();
 });
