@@ -3,289 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>E-Guest KPU Kabupaten Kuningan</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <title>Front Office Cloud KPU Kabupaten Kuningan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
     <style>
         body {
-            background: #f4f6f9;
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            color: #2b2d42;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8fafc;
+            color: #334155;
         }
-        .main-card {
-            border: none;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
-            overflow: hidden;
-        }
-        .brand-header {
+        .navbar-kpu {
             background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-            color: white;
-            padding: 25px;
-            text-align: center;
         }
-        .nav-pills .nav-link {
-            border-radius: 10px;
-            color: #4b5563;
-            font-weight: 600;
-            padding: 10px 20px;
-        }
-        .nav-pills .nav-link.active {
-            background-color: #4f46e5;
-        }
-        .camera-box {
-            background: #f8fafc;
-            border: 2px dashed #cbd5e1;
+        .card-custom {
+            border: none;
             border-radius: 16px;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 340px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
         }
         #video, #photo-preview {
             width: 100%;
-            max-width: 360px;
-            height: 270px;
+            max-width: 400px;
+            height: 300px;
             border-radius: 12px;
             object-fit: cover;
-            background: #000;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        .form-control, .form-select {
-            border-radius: 10px;
-            padding: 12px 16px;
-            border: 1px solid #e2e8f0;
-            background-color: #f8fafc;
-        }
-        .form-control:focus, .form-select:focus {
-            background-color: #fff;
-            border-color: #4f46e5;
-            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
-        }
-        .stat-card {
-            border: none;
-            border-radius: 14px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.02);
-        }
-        .table-responsive {
-            border-radius: 12px;
-            overflow: hidden;
+            background-color: #cbd5e1;
         }
         .img-table {
-            width: 60px;
-            height: 45px;
+            width: 50px;
+            height: 50px;
             object-fit: cover;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
-            transition: 0.2s;
+            transition: transform 0.2s;
         }
         .img-table:hover {
             transform: scale(1.1);
         }
-        /* Styling khusus tombol aksi bulat sempurna */
         .btn-round {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0;
-            transition: all 0.2s;
+            border-radius: 10px;
         }
-        .btn-round:hover {
-            transform: scale(1.1);
+        .nav-pills .nav-link.active {
+            background-color: #4f46e5;
         }
     </style>
 </head>
 <body>
 
-<div class="container py-4">
-    <div class="card main-card bg-white mb-4">
-        <div class="brand-header">
-            <h1 class="h3 mb-1 fw-bold">E-GUEST SYSTEM</h1>
-            <p class="mb-0 text-white-50 fs-6">Komisi Pemilihan Umum Kabupaten Kuningan</p>
-        </div>
-        
-        <div class="p-3 bg-light border-bottom d-flex justify-content-center">
-            <ul class="nav nav-pills gap-2" id="pills-tab" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="pills-form-tab" data-bs-toggle="pill" data-bs-target="#pills-form" type="button" role="tab"><i class="bi bi-pencil-square me-2"></i>Isi Buku Tamu</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="pills-dashboard-tab" data-bs-toggle="pill" data-bs-target="#pills-dashboard" type="button" role="tab" onclick="loadDashboard()"><i class="bi bi-speedometer2 me-2"></i>Dashboard & Data</button>
-                </li>
-            </ul>
-        </div>
-    </div>
-
-    <div class="tab-content" id="pills-tabContent">
-        
-        <div class="tab-pane fade show active" id="pills-form" role="tabpanel">
-            <div class="card main-card bg-white p-4 p-md-5">
-                <div class="row g-4 col-md-12 m-0">
-                    <div class="col-md-5 pe-md-4">
-                        <div class="camera-box h-100">
-                            <div class="text-center mb-3 text-muted fw-semibold">
-                                <i class="bi bi-camera shadow-sm p-2 rounded-circle bg-white text-primary me-1"></i> Kamera Identifikasi
-                            </div>
-                            <video id="video" autoplay playsinline></video>
-                            <img id="photo-preview" alt="Preview Foto" style="display:none;">
-                            <canvas id="canvas" width="640" height="480" class="d-none"></canvas>
-                            
-                            <button type="button" class="btn btn-dark w-100 mt-4 py-2" id="btn-snap" style="border-radius: 10px;">
-                                <i class="bi bi-camera-fill me-2"></i>Ambil Foto Tamu
-                            </button>
-                            <button type="button" class="btn btn-danger w-100 mt-4 py-2" id="btn-retry" style="display:none; border-radius: 10px;">
-                                <i class="bi bi-arrow-clockwise me-2"></i>Foto Ulang
-                            </button>
-                        </div>
-                    </div>
-                    <div class="col-md-7">
-                        <h4 class="mb-4 fw-bold text-dark" id="form-title">Data Kunjungan</h4>
-                        <form id="guest-form" class="row g-3">
-                            <input type="hidden" id="edit-index" value="">
-
-                            <div class="col-12">
-                                <label class="form-label fw-semibold text-secondary">Nama Lengkap</label>
-                                <input type="text" class="form-control" id="nama" required placeholder="Masukkan nama sesuai KTP">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold text-secondary">Instansi / Asal</label>
-                                <input type="text" class="form-control" id="instansi" required placeholder="Contoh: Bawaslu, Umum, Parpol">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold text-secondary">No. WhatsApp</label>
-                                <input type="tel" class="form-control" id="whatsapp" required placeholder="08xxxxxxxxxx">
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label fw-semibold text-secondary">Pejabat / Sub-Bagian Tujuan</label>
-                                <select class="form-select" id="tujuan" required>
-                                    <option value="" disabled selected>Pilih Sub-Bagian Tujuan...</option>
-                                    <option value="Sub-Bagian Keuangan, Umum, dan Logistik">Sub-Bagian Keuangan, Umum, dan Logistik</option>
-                                    <option value="Sub-Bagian Teknis Penyelenggaraan Pemilu & Hupmas">Sub-Bagian Teknis Penyelenggaraan Pemilu & Hupmas</option>
-                                    <option value="Sub-Bagian Perencanaan, Data, dan Informasi">Sub-Bagian Perencanaan, Data, dan Informasi</option>
-                                    <option value="Sub-Bagian Hukum dan Sumber Daya Manusia">Sub-Bagian Hukum dan Sumber Daya Manusia</option>
-                                    <option value="Sekretaris KPU Kab. Kuningan">Sekretaris KPU Kab. Kuningan</option>
-                                    <option value="Ketua / Anggota Komisioner KPU">Ketua / Anggota Komisioner KPU</option>
-                                </select>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label fw-semibold text-secondary">Keperluan / Agenda Kunjungan</label>
-                                <textarea class="form-control" id="keperluan" rows="3" required placeholder="Tuliskan maksud kunjungan..."></textarea>
-                            </div>
-                            <div class="col-12 mt-4">
-                                <button type="submit" id="btn-submit" class="btn btn-primary w-100 py-2" style="background-color:#4f46e5; border:none; border-radius:10px; font-weight:600;">
-                                    <i class="bi bi-check-circle-fill me-2"></i>Simpan Kehadiran
-                                </button>
-                                <button type="button" id="btn-cancel-edit" class="btn btn-secondary w-100 py-2 mt-2" style="display:none; border-radius:10px;" onclick="cancelEdit()">
-                                    Batal Edit
-                                </button>
-                            </div>
-                        </form>
-                    </div>
+    <nav class="navbar navbar-dark navbar-kpu py-3 shadow-sm">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="#">
+                <i class="bi bi-shield-check text-warning fs-3"></i>
+                <div>
+                    <span class="d-block fs-5 lh-1">SI-IMUT</span>
+                    <small class="text-muted fw-normal" style="font-size: 11px;">KPU Kabupaten Kuningan</small>
                 </div>
-            </div>
+            </a>
+            <span class="badge bg-success px-3 py-2 btn-round">Cloud Live Mode</span>
         </div>
+    </nav>
 
-        <div class="tab-pane fade" id="pills-dashboard" role="tabpanel">
-            
-            <div class="row g-3 mb-4">
-                <div class="col-md-6">
-                    <div class="card stat-card bg-white p-3 d-flex flex-row align-items-center justify-content-between">
-                        <div>
-                            <h6 class="text-muted fw-semibold mb-1">Tamu Hari Ini</h6>
-                            <h2 class="fw-bold mb-0 text-primary" id="dash-today">0</h2>
-                        </div>
-                        <div class="bg-primary-subtle p-3 rounded-3 text-primary fs-3"><i class="bi bi-calendar-check-fill"></i></div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="card stat-card bg-white p-3 d-flex flex-row align-items-center justify-content-between">
-                        <div>
-                            <h6 class="text-muted fw-semibold mb-1">Total Seluruh Tamu</h6>
-                            <h2 class="fw-bold mb-0 text-success" id="dash-total">0</h2>
-                        </div>
-                        <div class="bg-success-subtle p-3 rounded-3 text-success fs-3"><i class="bi bi-people-fill"></i></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card main-card bg-white p-4">
-                <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mb-4">
-                    <h5 class="fw-bold text-dark m-0"><i class="bi bi-table text-primary me-2"></i>Log Rekapitulasi Tamu</h5>
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-success px-3" id="btn-export" style="border-radius: 8px; font-weight: 600;">
-                            <i class="bi bi-file-earmark-zip-fill me-1"></i>Unduh ZIP (Excel & Foto)
-                        </button>
-                        <button class="btn btn-outline-danger px-3" onclick="openPinModalForClear()" style="border-radius: 8px;">
-                            <i class="bi bi-trash3-fill"></i> Bersihkan Data
-                        </button>
-                    </div>
-                </div>
-
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle bg-white border">
-                        <thead class="table-dark">
-                            <tr>
-                                <th class="text-center align-middle" style="width: 60px;">No</th>
-                                <th class="text-center align-middle" style="width: 80px;">Foto</th>
-                                <th class="text-center align-middle" style="width: 160px;">Waktu Kunjungan</th>
-                                <th class="text-center align-middle">Nama Lengkap</th>
-                                <th class="text-center align-middle">Instansi / Asal</th>
-                                <th class="text-center align-middle">No. Whatsapp</th>
-                                <th class="text-center align-middle">Tujuan</th>
-                                <th class="text-center align-middle">Keperluan</th>
-                                <th class="text-center align-middle" style="width: 110px;">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabel-tamu-body">
-                            </tbody>
-                    </table>
-                </div>
-            </div>
-            
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="photoModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-body text-center p-2 bg-dark rounded">
-                <img id="modal-img-view" src="" class="img-fluid rounded" alt="Foto Tamu Besar">
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="pinModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
-            <div class="modal-header bg-dark text-white p-3 border-0" style="border-radius: 16px 16px 0 0;">
-                <h6 class="modal-title fw-bold"><i class="bi bi-shield-lock-fill me-2"></i>PIN Pengaman Internal</h6>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-4 text-center">
-                <p class="small text-muted mb-4">Aksi ini hanya diperuntukkan bagi internal KPU. Silakan masukkan PIN Pengaman.</p>
-                <input type="password" id="input-pin" class="form-control form-control-lg text-center fw-bold fs-4" maxlength="4" placeholder="••••" style="letter-spacing: 0.5em; border-radius: 10px; border-color: #dee2e6;">
-                
-                <input type="hidden" id="pin-action" value="">
-                <input type="hidden" id="pin-index" value="">
-                
-                <div id="pin-error" class="text-danger small mt-2 d-none">PIN salah, silakan coba lagi.</div>
-            </div>
-            <div class="modal-footer p-2 border-0">
-                <button type="button" class="btn btn-primary w-100 py-2" id="btn-verify-pin" style="background-color:#4f46e5; border:none; border-radius:8px; font-weight:600;">Verifikasi PIN</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bundle.min.js"></script>
-<script src="app.js"></script>
-</body>
-</html>
+    <div class="container my-4">
+        <ul class="nav nav-pills mb-4 justify-content-center gap-2" id="pills-tab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active fw-semibold px-4 py-2 btn-round" id="pills-form-tab" data-bs-toggle="pill" data-bs-target="#pills-form" type="button" role="tab">
+                    <i class="bi bi-person-plus-fill me-2"></i>Isi Buku Tamu
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav
