@@ -101,8 +101,14 @@ form?.addEventListener('submit', async (e) => {
 function convertDriveUrlToDirect(url) {
     if (!url || url === "Tidak Ada Foto") return "https://placehold.co/100x100?text=No+Photo";
     if (url.startsWith("data:image")) return url;
+    
+    // Ekstrak ID unik berkas dari link Google Drive biasa
     const match = url.match(/\/d\/([^\/]+)/) || url.match(/id=([^&]+)/);
-    return match && match[1] ? `https://docs.google.com/uc?export=view&id=${match[1]}` : url;
+    if (match && match[1]) {
+        // Menggunakan rendering engine Google User Content (Bebas dari kendala blokir Cookie)
+        return `https://lh3.googleusercontent.com/d/${match[1]}`;
+    }
+    return url;
 }
 
 // 5. Muat KPI Dashboard & Isi Tabel
