@@ -1,3 +1,8 @@
+// ==========================================
+// KUNCI INTEGRASI CLOUD GOOGLE WORKSPACE
+// ==========================================
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxjkSV5Xttfq0W-g-0463y4twYwgaYiFYC9_SvjySWkjOMPjNo3lzK0wn1ms5GGWpdAog/exec";
+
 // Inisialisasi Elemen HTML
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
@@ -37,8 +42,8 @@ btnRetry.addEventListener('click', () => {
     btnRetry.style.display = 'none';
 });
 
-// 4. Manajemen Submit Form (Tambah Baru / Simpan Hasil Edit)
-form.addEventListener('submit', (e) => {
+// 4. Manajemen Submit Form (Tambah Baru ke Cloud & Local / Simpan Hasil Edit Lokal)
+form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
     if (!tumpukanFotoBase64) {
@@ -59,16 +64,56 @@ form.addEventListener('submit', (e) => {
         foto: tumpukanFotoBase64
     };
 
-    if (editIndex !== "") {
-        listTamu[editIndex] = dataTamu;
-        alert("Data kunjungan berhasil diperbarui!");
-    } else {
-        listTamu.push(dataTamu);
-        alert("Data kunjungan berhasil disimpan!");
-    }
+    // Animasi Loading pada Tombol saat mengirim ke Google Apps Script
+    const btnSubmit = document.getElementById('btn-submit');
+    const originalBtnText = btnSubmit.innerHTML;
+    btnSubmit.disabled = true;
+    btnSubmit.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Menyimpan ke Cloud KPU...`;
 
-    localStorage.setItem('kpu_guestbook', JSON.stringify(listTamu));
-    cancelEdit();
+    try {
+        // Hanya kirim ke Google Sheets & Drive jika ini data BARU (bukan edit)
+        // Karena script GAS didesain khusus untuk merekam entri baris baru (appendRow)
+        if (editIndex === "") {
+            const response = await fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify(dataTamu)
+            });
+            
+            const hasil = await response.json();
+            if (hasil.status !== 'success') {
+                throw new Error(hasil.message);
+            }
+        }
+
+        // --- Proses Penyimpanan Sisi Client (LocalStorage) ---
+        if (editIndex !== "") {
+            listTamu[editIndex] = dataTamu;
+            alert("✓ Data kunjungan berhasil diperbarui!");
+        } else {
+            listTamu.push(dataTamu);
+            alert("✓ Sukses! Data tercatat di Google Sheets & Foto tersimpan di Google Drive KPU Kuningan.");
+        }
+
+        localStorage.setItem('kpu_guestbook', JSON.stringify(listTamu));
+        cancelEdit();
+        loadDashboard(); // Sinkronisasi tampilan tabel & KPI secara instan
+
+    } catch (error) {
+        console.error("Error sinkronisasi cloud:", error);
+        alert("⚠️ Gangguan Jaringan! Gagal mengirim ke Cloud Google, namun data Peserta tetap diselamatkan di memori lokal perangkat.");
+        
+        // Strategi Mitigasi Offline: Jika server Google down/RTO, data tetap masuk ke tablet lokal
+        if (editIndex === "") {
+            listTamu.push(dataTamu);
+            localStorage.setItem('kpu_guestbook', JSON.stringify(listTamu));
+            cancelEdit();
+            loadDashboard();
+        }
+    } finally {
+        // Kembalikan tombol ke kondisi semula setelah proses selesai
+        btnSubmit.disabled = false;
+        btnSubmit.innerHTML = originalBtnText;
+    }
 });
 
 // 5. Muat KPI Dashboard & Isi Tabel (Urutan: Terlama -> Terbaru)
@@ -115,7 +160,7 @@ function loadDashboard() {
                 </div>
             </td>
         `;
-        tbody.appendChild(tr); // Menggunakan appendChild menjamin data terlama (index awal) berada di atas
+        tbody.appendChild(tr);
     });
 }
 
@@ -229,4 +274,9 @@ btnExport.addEventListener('click', () => {
         link.click();
         document.body.removeChild(link);
     });
+});
+
+// Jalankan fungsi dashboard saat halaman selesai dimuat pertama kali
+document.addEventListener("DOMContentLoaded", () => {
+    loadDashboard();
 });
