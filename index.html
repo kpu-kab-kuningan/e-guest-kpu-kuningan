@@ -268,31 +268,37 @@
                     </div>
 
                     
-                    <div class="d-flex flex-column flex-md-row justify-content-end align-items-md-center gap-2 mt-2">
-                        
-                        <div class="input-group shadow-sm" style="max-width: 200px; border-radius: 8px; overflow: hidden;">
-                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-calendar-month text-primary"></i></span>
-                            <select id="filter-bulan" class="form-select border-start-0 ps-0" style="font-weight: 600; cursor: pointer; border: none;">
-                                <option value="ALL">Semua Bulan</option>
-                                <option value="01">Januari</option>
-                                <option value="02">Februari</option>
-                                <option value="03">Maret</option>
-                                <option value="04">April</option>
-                                <option value="05">Mei</option>
-                                <option value="06">Juni</option>
-                                <option value="07">Juli</option>
-                                <option value="08">Agustus</option>
-                                <option value="09">September</option>
-                                <option value="10">Oktober</option>
-                                <option value="11">November</option>
-                                <option value="12">Desember</option>
-                            </select>
+                    <div class="d-flex flex-column flex-md-row justify-content-end align-items-md-center gap-2 mt-3">
+                        <div class="dropdown">
+                            <button class="btn btn-white border shadow-sm dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="border-radius: 10px; font-weight: 600; padding: 10px 16px; background-color: #fff; border-color: #e2e8f0;">
+                                <i class="bi bi-calendar2-week-fill text-primary"></i>
+                                <span id="label-filter-bulan">Semua Bulan</span>
+                            </button>
+                            
+                            <ul class="dropdown-menu shadow-lg border-0 mt-2" style="border-radius: 12px; min-width: 200px; max-height: 280px; overflow-y: auto; z-index: 1000; padding: 8px;">
+                                <li><a class="dropdown-item fw-semibold active rounded mx-1 py-2" style="width: auto;" href="#" data-val="ALL">Semua Bulan</a></li>
+                                <li><hr class="dropdown-divider mx-1"></li>
+                                <li><a class="dropdown-item fw-medium rounded mx-1 py-2" style="width: auto;" href="#" data-val="01">Januari</a></li>
+                                <li><a class="dropdown-item fw-medium rounded mx-1 py-2" style="width: auto;" href="#" data-val="02">Februari</a></li>
+                                <li><a class="dropdown-item fw-medium rounded mx-1 py-2" style="width: auto;" href="#" data-val="03">Maret</a></li>
+                                <li><a class="dropdown-item fw-medium rounded mx-1 py-2" style="width: auto;" href="#" data-val="04">April</a></li>
+                                <li><a class="dropdown-item fw-medium rounded mx-1 py-2" style="width: auto;" href="#" data-val="05">Mei</a></li>
+                                <li><a class="dropdown-item fw-medium rounded mx-1 py-2" style="width: auto;" href="#" data-val="06">Juni</a></li>
+                                <li><a class="dropdown-item fw-medium rounded mx-1 py-2" style="width: auto;" href="#" data-val="07">Juli</a></li>
+                                <li><a class="dropdown-item fw-medium rounded mx-1 py-2" style="width: auto;" href="#" data-val="08">Agustus</a></li>
+                                <li><a class="dropdown-item fw-medium rounded mx-1 py-2" style="width: auto;" href="#" data-val="09">September</a></li>
+                                <li><a class="dropdown-item fw-medium rounded mx-1 py-2" style="width: auto;" href="#" data-val="10">Oktober</a></li>
+                                <li><a class="dropdown-item fw-medium rounded mx-1 py-2" style="width: auto;" href="#" data-val="11">November</a></li>
+                                <li><a class="dropdown-item fw-medium rounded mx-1 py-2" style="width: auto;" href="#" data-val="12">Desember</a></li>
+                            </ul>
                         </div>
+                        
+                        <input type="hidden" id="filter-bulan" value="ALL">
                 
-                        <button class="btn btn-success px-4 btn-round shadow-sm" id="btn-export" style="font-weight: 600;">
+                        <button class="btn btn-success px-4 shadow-sm" id="btn-export" style="border-radius: 10px; font-weight: 600;">
                             <i class="bi bi-file-earmark-zip-fill me-1"></i> Ekspor CSV
                         </button>
-                        <button class="btn btn-outline-danger px-4 btn-round shadow-sm" onclick="clearData()" style="font-weight: 600;">
+                        <button class="btn btn-outline-danger px-4 shadow-sm" onclick="clearData()" style="border-radius: 10px; font-weight: 600;">
                             <i class="bi bi-trash3-fill me-1"></i> Bersihkan
                         </button>
                     </div>
