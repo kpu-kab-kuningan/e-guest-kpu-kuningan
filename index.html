@@ -266,13 +266,34 @@
                                 </tbody>
                         </table>
                     </div>
+
+                    
+                    <div class="d-flex flex-column flex-md-row justify-content-end align-items-md-center gap-2 mt-2">
+                        
+                        <div class="input-group shadow-sm" style="max-width: 200px; border-radius: 8px; overflow: hidden;">
+                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-calendar-month text-primary"></i></span>
+                            <select id="filter-bulan" class="form-select border-start-0 ps-0" style="font-weight: 600; cursor: pointer; border: none;">
+                                <option value="ALL">Semua Bulan</option>
+                                <option value="01">Januari</option>
+                                <option value="02">Februari</option>
+                                <option value="03">Maret</option>
+                                <option value="04">April</option>
+                                <option value="05">Mei</option>
+                                <option value="06">Juni</option>
+                                <option value="07">Juli</option>
+                                <option value="08">Agustus</option>
+                                <option value="09">September</option>
+                                <option value="10">Oktober</option>
+                                <option value="11">November</option>
+                                <option value="12">Desember</option>
+                            </select>
+                        </div>
                 
-                    <div class="d-flex flex-column flex-sm-row justify-content-end gap-2">
                         <button class="btn btn-success px-4 btn-round shadow-sm" id="btn-export" style="font-weight: 600;">
                             <i class="bi bi-file-earmark-zip-fill me-1"></i> Ekspor CSV
                         </button>
-                        <button class="btn btn-outline-danger px-4 btn-round" onclick="clearData()" style="font-weight: 600;">
-                            <i class="bi bi-trash3-fill me-1"></i> Bersihkan Data
+                        <button class="btn btn-outline-danger px-4 btn-round shadow-sm" onclick="clearData()" style="font-weight: 600;">
+                            <i class="bi bi-trash3-fill me-1"></i> Bersihkan
                         </button>
                     </div>
                 
