@@ -368,23 +368,43 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // ==========================================
-// FITUR PENCARIAN LIVE (REAL-TIME FILTERING)
+// FITUR FILTER TERPADU (SEARCH TEKS + BULAN)
 // ==========================================
-document.getElementById('input-search')?.addEventListener('input', function(e) {
-    const kataKunci = e.target.value.toLowerCase();
+function jalankanFilterTerpadu() {
+    // Ambil nilai dari kotak pencarian dan dropdown bulan
+    const kataKunci = document.getElementById('input-search').value.toLowerCase();
+    const bulanPilih = document.getElementById('filter-bulan').value; 
+    
     const barisTabel = document.querySelectorAll('#tabel-tamu-body tr');
 
     barisTabel.forEach(baris => {
-        // Lewati proses jika baris tersebut adalah pesan "loading" atau "kosong"
-        if(baris.cells.length < 2) return; 
-        
-        // Ambil seluruh teks dalam satu baris, lalu cocokkan dengan kata kunci
+        // Lewati jika ini adalah baris pesan "Loading" atau "Kosong"
+        if(baris.cells.length < 3) return; 
+
         const teksBaris = baris.innerText.toLowerCase();
+        const teksWaktu = baris.cells[2].innerText; // Mengambil data di kolom "Waktu Kunjungan"
+
+        // Ekstrak angka bulan dari teks waktu (Bekerja untuk format DD/MM/YYYY atau DD-MM-YYYY)
+        let bulanBaris = "ALL";
+        const matchWaktu = teksWaktu.match(/\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}/);
         
-        if(teksBaris.includes(kataKunci)) {
-            baris.style.display = ''; // Tampilkan jika cocok
+        if (matchWaktu) {
+            const bagianWaktu = matchWaktu[0].split(/[\/\-]/); // Memecah tanggal, bulan, tahun
+            bulanBaris = bagianWaktu[1].padStart(2, '0'); // Mengambil bagian bulan dan memastikan 2 digit (misal '5' jadi '05')
+        }
+
+        // Cek apakah baris ini lolos kedua kriteria filter
+        const cocokSearch = teksBaris.includes(kataKunci);
+        const cocokBulan = (bulanPilih === "ALL" || bulanBaris === bulanPilih);
+
+        if (cocokSearch && cocokBulan) {
+            baris.style.display = ''; // Tampilkan
         } else {
-            baris.style.display = 'none'; // Sembunyikan jika tidak cocok
+            baris.style.display = 'none'; // Sembunyikan
         }
     });
-});
+}
+
+// Pasang pendeteksi perubahan (Event Listener) pada input search dan dropdown
+document.getElementById('input-search')?.addEventListener('input', jalankanFilterTerpadu);
+document.getElementById('filter-bulan')?.addEventListener('change', jalankanFilterTerpadu);
