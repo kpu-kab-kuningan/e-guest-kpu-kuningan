@@ -2,31 +2,78 @@
 // KUNCI INTEGRASI CLOUD GOOGLE WORKSPACE
 // ==========================================
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzLkt4uA4mphlac0wHaXOOUKusm3JIxM__AxjJNPuADHIHn3W2sFyUI0QEI3DclXYX99Q/exec";
-const PIN_KEAMANAN_KPU = "657139"; // PIN rahasia Peserta
+const PIN_KEAMANAN_KPU = "657139"; // PIN rahasia Peserta (6 Digit)
 
-// Inisialisasi Elemen HTML
+// Inisialisasi Elemen Form & Kamera
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
 const photoPreview = document.getElementById('photo-preview');
 const btnSnap = document.getElementById('btn-snap');
 const btnRetry = document.getElementById('btn-retry');
-const form = document.getElementById('guest-form');
+const form = document.getElementById('guest-form')
 const btnExport = document.getElementById('btn-export');
 
 let tumpukanFotoBase64 = "";
-let memoriCloudLokal = []; // Menyimpan salinan data dari cloud
-let keyWaktuEditCloud = ""; // Menyimpan kunci waktu data yang sedang di-edit
+let memoriCloudLokal = []; 
+let keyWaktuEditCloud = ""; 
 let indeksAksiDipilih = null; 
-let tipeAksiInternal = ""; // Penanda jenis aksi: "EDIT", "DELETE", atau "CLEAR"
+let tipeAksiInternal = ""; 
 
-// 1. Jalankan Kamera Otomatis Saat Aplikasi Dibuka
+// ==========================================
+// FUNGSI NAVIGASI SIDEBAR (Single Page App)
+// ==========================================
+
+// Buka/Tutup Sidebar (Hamburger Menu Toggle)
+document.getElementById('menu-toggle')?.addEventListener('click', function() {
+    document.getElementById('wrapper').classList.toggle('toggled');
+});
+
+// Pindah Antar Layar (Dashboard vs Tambah Tamu)
+function gantiTampilanUtama(namaTampilan) {
+    const viewDash = document.getElementById('view-dashboard');
+    const viewTambah = document.getElementById('view-tambah');
+    const menuDash = document.getElementById('menu-dashboard');
+    const menuTambah = document.getElementById('menu-tambah');
+    const judulHeader = document.getElementById('judul-halaman');
+
+    if (namaTampilan === 'dashboard') {
+        viewDash.classList.remove('d-none');
+        viewDash.classList.add('d-block');
+        viewTambah.classList.remove('d-block');
+        viewTambah.classList.add('d-none');
+        
+        menuDash.classList.add('active');
+        menuTambah.classList.remove('active');
+        judulHeader.innerText = "Dashboard Monitoring Tamu";
+        
+        // Auto tutup sidebar jika sedang diakses dari HP
+        if (window.innerWidth <= 768) document.getElementById('wrapper').classList.remove('toggled');
+        
+    } else if (namaTampilan === 'tambah') {
+        viewTambah.classList.remove('d-none');
+        viewTambah.classList.add('d-block');
+        viewDash.classList.remove('d-block');
+        viewDash.classList.add('d-none');
+        
+        menuTambah.classList.add('active');
+        menuDash.classList.remove('active');
+        judulHeader.innerText = "Form Pendataan Tamu";
+        
+        if (window.innerWidth <= 768) document.getElementById('wrapper').classList.remove('toggled');
+    }
+}
+
+// ==========================================
+// KONTROL KAMERA & FORMULIR
+// ==========================================
+
+// Nyalakan Kamera Otomatis Saat Web Dibuka
 if (video) {
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false })
         .then(stream => { video.srcObject = stream; })
-        .catch(err => { console.warn("Mohon aktifkan izin kamera pada perangkat.", err); });
+        .catch(err => { console.warn("Kamera tidak ditemukan atau diizinkan.", err); });
 }
 
-// 2. Ambil Gambar dari Kamera
 btnSnap?.addEventListener('click', () => {
     const context = canvas.getContext('2d');
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -40,7 +87,6 @@ btnSnap?.addEventListener('click', () => {
     btnRetry.style.display = 'inline-block';
 });
 
-// 3. Foto Ulang (Perbaikan Typo Sintaks)
 btnRetry?.addEventListener('click', () => {
     tumpukanFotoBase64 = "";
     photoPreview.style.display = 'none';
@@ -49,12 +95,12 @@ btnRetry?.addEventListener('click', () => {
     btnRetry.style.display = 'none';
 });
 
-// 4. Manajemen Submit Form (Tambah Baru / Edit di Cloud)
+// Submit Form (Kirim ke Cloud)
 form?.addEventListener('submit', async (e) => {
     e.preventDefault();
 
     if (!tumpukanFotoBase64) {
-        return alert("Ambil foto tamu terlebih dahulu sebagai bukti kehadiran!");
+        return alert("Harap ambil foto tamu terlebih dahulu!");
     }
 
     const editIndex = document.getElementById('edit-index').value;
@@ -73,7 +119,7 @@ form?.addEventListener('submit', async (e) => {
     const btnSubmit = document.getElementById('btn-submit');
     const originalBtnText = btnSubmit.innerHTML;
     btnSubmit.disabled = true;
-    btnSubmit.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Memproses Cloud...`;
+    btnSubmit.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Mengirim data...`;
 
     try {
         const response = await fetch(SCRIPT_URL, {
@@ -84,38 +130,29 @@ form?.addEventListener('submit', async (e) => {
         const hasil = await response.json();
         if (hasil.status !== 'success') throw new Error(hasil.message);
 
-        alert(`✓ Sukses! ${dataTamu.action === "EDIT" ? "Data berhasil diperbarui" : "Data baru tercatat"} di Cloud KPU.`);
+        alert(`✓ Berhasil! Data telah ${dataTamu.action === "EDIT" ? "diperbarui" : "dicatat"} ke Cloud KPU.`);
         cancelEdit();
+        
+        // Pindah otomatis kembali ke Dashboard setelah sukses daftar tamu
+        gantiTampilanUtama('dashboard');
         loadDashboard();
 
     } catch (error) {
-        console.error("Error sinkronisasi cloud:", error);
-        alert("⚠️ Gagal memproses data ke Cloud Google. Periksa koneksi internet.");
+        alert("⚠️ Gagal mengirim data. Cek koneksi internet.");
     } finally {
         btnSubmit.disabled = false;
         btnSubmit.innerHTML = originalBtnText;
     }
 });
 
-// Fungsi bantuan konversi link gambar drive
-function convertDriveUrlToDirect(url) {
-    if (!url || url === "Tidak Ada Foto") return "https://placehold.co/100x100?text=No+Photo";
-    if (url.startsWith("data:image")) return url;
-    
-    // Ekstrak ID unik berkas dari link Google Drive biasa
-    const match = url.match(/\/d\/([^\/]+)/) || url.match(/id=([^&]+)/);
-    if (match && match[1]) {
-        // Menggunakan rendering engine Google User Content (Bebas dari kendala blokir Cookie)
-        return `https://lh3.googleusercontent.com/d/${match[1]}`;
-    }
-    return url;
-}
+// ==========================================
+// TAMPILAN DASHBOARD DATA & KEAMANAN PIN
+// ==========================================
 
-// 5. Muat KPI Dashboard & Isi Tabel
 async function loadDashboard() {
     const tbody = document.getElementById('tabel-tamu-body');
     if (!tbody) return;
-    tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary" role="status"></span> Mengambil data dari Cloud KPU...</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" class="text-center py-5 text-primary"><span class="spinner-border spinner-border-sm" role="status"></span> Menyinkronkan Data Cloud KPU...</td></tr>`;
 
     try {
         const response = await fetch(SCRIPT_URL);
@@ -132,10 +169,11 @@ async function loadDashboard() {
         tbody.innerHTML = "";
 
         if (memoriCloudLokal.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted py-4">Belum ada data kunjungan tamu di Cloud.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted py-4">Belum ada riwayat kunjungan.</td></tr>`;
             return;
         }
 
+        // Render Data Berurutan (Terlama di atas, terbaru di bawah)
         memoriCloudLokal.forEach((item, index) => {
             const nomorUrut = index + 1;
             const linkFotoDirect = convertDriveUrlToDirect(item.foto);
@@ -144,20 +182,20 @@ async function loadDashboard() {
             tr.innerHTML = `
                 <td class="text-center fw-bold text-secondary">${nomorUrut}</td>
                 <td class="text-center">
-                    <img src="${linkFotoDirect}" class="img-table" onclick="viewPhoto('${linkFotoDirect}')" onerror="this.src='https://placehold.co/100x100?text=Error+Image'">
+                    <img src="${linkFotoDirect}" class="img-table shadow-sm" onclick="viewPhoto('${linkFotoDirect}')" onerror="this.src='https://placehold.co/100x100?text=No+Photo'">
                 </td>
                 <td class="small fw-semibold text-secondary text-center">${item.waktu}</td>
                 <td class="fw-bold">${item.nama}</td>
                 <td><span class="badge bg-light text-dark border">${item.instansi}</span></td>
-                <td>${item.whatsapp}</td>
-                <td class="small">${item.tujuan}</td>
-                <td>${item.keperluan}</td>
+                <td><a href="https://wa.me/${item.whatsapp}" target="_blank" class="text-decoration-none text-success"><i class="bi bi-whatsapp"></i> ${item.whatsapp}</a></td>
+                <td class="small fw-bold">${item.tujuan}</td>
+                <td class="small">${item.keperluan}</td>
                 <td>
                     <div class="d-flex justify-content-center gap-2">
-                        <button class="btn btn-warning btn-round text-dark shadow-sm" onclick="bukaModalPinKpu(${index}, 'EDIT')" title="Edit Data">
+                        <button class="btn btn-warning btn-sm btn-round text-dark border shadow-sm" onclick="bukaModalPinKpu(${index}, 'EDIT')" title="Edit Kunjungan">
                             <i class="bi bi-pencil-fill"></i>
                         </button>
-                        <button class="btn btn-danger btn-round shadow-sm" onclick="bukaModalPinKpu(${index}, 'DELETE')" title="Hapus Data">
+                        <button class="btn btn-danger btn-sm btn-round shadow-sm" onclick="bukaModalPinKpu(${index}, 'DELETE')" title="Hapus Kunjungan">
                             <i class="bi bi-trash-fill"></i>
                         </button>
                     </div>
@@ -166,18 +204,14 @@ async function loadDashboard() {
             tbody.appendChild(tr);
         });
     } catch (error) {
-        console.error("Gagal memuat dashboard cloud:", error);
-        tbody.innerHTML = `<tr><td colspan="9" class="text-center text-danger py-4">⚠️ Gagal memuat data dari Cloud KPU. Silakan periksa jaringan internet tablet.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center text-danger py-4">⚠️ Gagal mengambil data Cloud. Silakan refresh halaman.</td></tr>`;
     }
 }
 
-// ==========================================
-// JALUR VALIDASI INTERFACES MODAL PIN DIGITAL
-// ==========================================
+// Sistem Otorisasi PIN Modal
 function bukaModalPinKpu(index, aksi) {
     indeksAksiDipilih = index;
     tipeAksiInternal = aksi;
-    
     document.getElementById('input-pin').value = "";
     document.getElementById('pin-error').classList.add('d-none');
     
@@ -185,21 +219,19 @@ function bukaModalPinKpu(index, aksi) {
     pinModal.show();
 }
 
-// Handler Validasi saat Tombol "Verifikasi" di Modal di-Klik
 document.getElementById('btn-verify-pin')?.addEventListener('click', () => {
     const inputPin = document.getElementById('input-pin').value;
     
+    // Mengecek kesesuaian dengan PIN pesanan Peserta
     if (inputPin !== PIN_KEAMANAN_KPU) {
         document.getElementById('pin-error').classList.remove('d-none');
         return;
     }
 
-    // Jika PIN benar, tutup modal secara aman
     const pinModalElement = document.getElementById('pinModal');
     const modalInstance = bootstrap.Modal.getInstance(pinModalElement);
     modalInstance.hide();
 
-    // Alihkan ke fungsi eksekusi yang sesuai
     if (tipeAksiInternal === "EDIT") {
         eksekusiEditCloud(indeksAksiDipilih);
     } else if (tipeAksiInternal === "DELETE") {
@@ -209,10 +241,12 @@ document.getElementById('btn-verify-pin')?.addEventListener('click', () => {
     }
 });
 
-// 6. Jalur Eksekusi Form Edit
+// ==========================================
+// EKSEKUTOR AKSI (TERLINDUNGI PIN)
+// ==========================================
+
 function eksekusiEditCloud(index) {
     const item = memoriCloudLokal[index];
-
     document.getElementById('edit-index').value = index;
     keyWaktuEditCloud = item.waktu;
 
@@ -229,16 +263,36 @@ function eksekusiEditCloud(index) {
     btnSnap.style.display = 'none';
     btnRetry.style.display = 'inline-block';
 
-    document.getElementById('form-title').innerHTML = `<i class="bi bi-pencil-square text-warning"></i> Edit Data Cloud: ${item.nama}`;
+    document.getElementById('form-title').innerHTML = `<i class="bi bi-pencil-square text-warning me-2"></i> Mode Edit: ${item.nama}`;
     document.getElementById('btn-submit').className = "btn btn-warning w-100 py-2 fw-bold text-dark";
-    document.getElementById('btn-submit').innerHTML = `<i class="bi bi-save-fill me-2"></i>Perbarui Kehadiran Cloud`;
+    document.getElementById('btn-submit').innerHTML = `<i class="bi bi-save-fill me-2"></i>Perbarui Data Tamu`;
     document.getElementById('btn-cancel-edit').style.display = "block";
 
-    const formTab = new bootstrap.Tab(document.getElementById('pills-form-tab'));
-    formTab.show();
+    // Lempar pengguna ke halaman form secara paksa
+    gantiTampilanUtama('tambah');
 }
 
-// 7. Fungsi Batalkan Edit
+async function eksekusiDeleteCloud(index) {
+    const item = memoriCloudLokal[index];
+    if (!confirm(`Hapus permanen jejak kunjungan dari "${item.nama}"?`)) return;
+
+    const tbody = document.getElementById('tabel-tamu-body');
+    tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-danger"><span class="spinner-border spinner-border-sm"></span> Menghapus arsip Cloud...</td></tr>`;
+
+    try {
+        const response = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: "DELETE", waktu: item.waktu })
+        });
+        const hasil = await response.json();
+        if (hasil.status !== 'success') throw new Error(hasil.message);
+        loadDashboard();
+    } catch (error) {
+        alert("⚠️ Gagal menghapus data di server Cloud.");
+        loadDashboard();
+    }
+}
+
 function cancelEdit() {
     form.reset();
     document.getElementById('edit-index').value = "";
@@ -249,69 +303,50 @@ function cancelEdit() {
     btnSnap.style.display = 'inline-block';
     btnRetry.style.display = 'none';
 
-    document.getElementById('form-title').textContent = "Data Kunjungan";
+    document.getElementById('form-title').textContent = "Pendaftaran Kehadiran Baru";
     document.getElementById('btn-submit').className = "btn btn-primary w-100 py-2 fw-bold";
     document.getElementById('btn-submit').style.backgroundColor = "#4f46e5";
     document.getElementById('btn-submit').innerHTML = `<i class="bi bi-check-circle-fill me-2"></i>Simpan Kehadiran`;
     document.getElementById('btn-cancel-edit').style.display = "none";
 }
 
-// 8. Jalur Eksekusi Hapus Berkas Cloud
-async function eksekusiDeleteCloud(index) {
-    const item = memoriCloudLokal[index];
-    if (!confirm(`Apakah Peserta yakin ingin menghapus kunjungan dari "${item.nama}" secara permanen?`)) return;
-
-    const tbody = document.getElementById('tabel-tamu-body');
-    tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4"><span class="spinner-border spinner-border-sm text-danger" role="status"></span> Menghapus data dari Cloud...</td></tr>`;
-
-    try {
-        const response = await fetch(SCRIPT_URL, {
-            method: 'POST',
-            body: JSON.stringify({
-                action: "DELETE",
-                waktu: item.waktu
-            })
-        });
-
-        const hasil = await response.json();
-        if (hasil.status !== 'success') throw new Error(hasil.message);
-
-        alert("✓ Sukses! Data & Foto berhasil dimusnahkan dari Cloud Google.");
-        loadDashboard();
-
-    } catch (error) {
-        console.error("Gagal menghapus data:", error);
-        alert("⚠️ Gagal menghapus data dari server Cloud. Periksa koneksi internet.");
-        loadDashboard();
-    }
-}
-
-// 9. Preview Foto Besar
 function viewPhoto(base64Src) {
     document.getElementById('modal-img-view').src = base64Src;
     const photoModal = new bootstrap.Modal(document.getElementById('photoModal'));
     photoModal.show();
 }
 
-// 10. Bersihkan Seluruh Database Perangkat (Terproteksi Modal PIN)
 function clearData() {
     bukaModalPinKpu(null, 'CLEAR');
 }
 
 function eksekusiClearData() {
     localStorage.removeItem('kpu_guestbook');
-    alert("Local storage berhasil dibersihkan.");
+    alert("Sampah penyimpanan browser berhasil dikosongkan.");
     loadDashboard();
 }
 
-// 11. GENERATE ZIP DATA CLOUD
+// Konversi Bypass Foto Google Drive Anti-Error Image
+function convertDriveUrlToDirect(url) {
+    if (!url || url === "Tidak Ada Foto") return "https://placehold.co/100x100?text=No+Photo";
+    if (url.startsWith("data:image")) return url;
+    
+    // Ekstrak ID unik berkas dari link Google Drive biasa
+    const match = url.match(/\/d\/([^\/]+)/) || url.match(/id=([^&]+)/);
+    if (match && match[1]) {
+        // Menggunakan rendering engine Google User Content (Bebas dari kendala blokir Cookie)
+        return `https://lh3.googleusercontent.com/d/${match[1]}`;
+    }
+    return url;
+}
+
+// Fitur Unduh ZIP Rekap Kehadiran
 btnExport?.addEventListener('click', () => {
-    if (memoriCloudLokal.length === 0) return alert("Tidak ada data kunjungan untuk diekspor.");
-
+    if (memoriCloudLokal.length === 0) return alert("Belum ada data kunjungan.");
     const zip = new JSZip();
-    let csvContent = "\uFEFFsep=,\nWaktu Kunjungan,Nama Lengkap,Instansi / Asal,No. Whatsapp,Tujuan,Keperluan,Tautan Foto Cloud\n";
+    let csvContent = "\uFEFFsep=,\nWaktu Kunjungan,Nama Lengkap,Instansi / Asal,No. Whatsapp,Tujuan,Keperluan,Tautan Berkas Drive\n";
 
-    memoriCloudLokal.forEach((item, index) => {
+    memoriCloudLokal.forEach((item) => {
         let row = `"${item.waktu}","${item.nama.replace(/"/g, '""')}","${item.instansi.replace(/"/g, '""')}","${item.whatsapp}","${item.tujuan.replace(/"/g, '""')}","${item.keperluan.replace(/"/g, '""')}","${item.foto}"`;
         csvContent += row + "\n";
     });
@@ -320,14 +355,14 @@ btnExport?.addEventListener('click', () => {
     zip.generateAsync({ type: "blob" }).then(function(content) {
         const link = document.createElement("a");
         link.href = URL.createObjectURL(content);
-        link.download = `Rekap_Buku_Tamu_Cloud_${Date.now()}.zip`;
+        link.download = `Rekap_Kehadiran_KPU_${Date.now()}.zip`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
     });
 });
 
-// Jalankan fungsi dashboard saat halaman selesai dimuat pertama kali
+// Panggilan Pertama Saat Web Dimuat
 document.addEventListener("DOMContentLoaded", () => {
     loadDashboard();
 });
