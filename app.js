@@ -366,3 +366,25 @@ btnExport?.addEventListener('click', () => {
 document.addEventListener("DOMContentLoaded", () => {
     loadDashboard();
 });
+
+// ==========================================
+// FITUR PENCARIAN LIVE (REAL-TIME FILTERING)
+// ==========================================
+document.getElementById('input-search')?.addEventListener('input', function(e) {
+    const kataKunci = e.target.value.toLowerCase();
+    const barisTabel = document.querySelectorAll('#tabel-tamu-body tr');
+
+    barisTabel.forEach(baris => {
+        // Lewati proses jika baris tersebut adalah pesan "loading" atau "kosong"
+        if(baris.cells.length < 2) return; 
+        
+        // Ambil seluruh teks dalam satu baris, lalu cocokkan dengan kata kunci
+        const teksBaris = baris.innerText.toLowerCase();
+        
+        if(teksBaris.includes(kataKunci)) {
+            baris.style.display = ''; // Tampilkan jika cocok
+        } else {
+            baris.style.display = 'none'; // Sembunyikan jika tidak cocok
+        }
+    });
+});
