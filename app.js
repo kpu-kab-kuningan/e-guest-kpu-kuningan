@@ -408,3 +408,30 @@ function jalankanFilterTerpadu() {
 // Pasang pendeteksi perubahan (Event Listener) pada input search dan dropdown
 document.getElementById('input-search')?.addEventListener('input', jalankanFilterTerpadu);
 document.getElementById('filter-bulan')?.addEventListener('change', jalankanFilterTerpadu);
+
+
+// ==========================================
+// KONTROL UI DROPDOWN FILTER BULAN MODERN
+// ==========================================
+document.querySelectorAll('.dropdown-menu .dropdown-item').forEach(item => {
+    item.addEventListener('click', function(e) {
+        e.preventDefault();
+        const nilaiBulan = this.getAttribute('data-val');
+        if (!nilaiBulan) return; // Abaikan jika yang diklik adalah garis pembatas (divider)
+
+        // 1. Ubah teks pada tombol Dropdown
+        document.getElementById('label-filter-bulan').textContent = this.textContent;
+        
+        // 2. Simpan nilai ke input tersembunyi
+        document.getElementById('filter-bulan').value = nilaiBulan;
+
+        // 3. Efek visual: Hapus warna aktif dari semua bulan, lalu pindahkan ke bulan yang dipilih
+        document.querySelectorAll('.dropdown-menu .dropdown-item').forEach(el => {
+            el.classList.remove('active', 'bg-primary', 'text-white');
+        });
+        this.classList.add('active', 'bg-primary', 'text-white');
+
+        // 4. Langsung jalankan filter tabel tanpa harus klik tombol apapun
+        jalankanFilterTerpadu();
+    });
+});
