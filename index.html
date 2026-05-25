@@ -449,21 +449,19 @@
                 <h5 class="modal-title fw-bold text-dark"><i class="bi bi-sliders text-primary me-2"></i>Update Kehadiran Pejabat</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body px-4">
-                <p class="small text-muted mb-3">Ubah status kehadiran pejabat KPU di bawah ini menggunakan dropdown, lalu klik simpan perubahan.</p>
-					<div class="table-responsive" style="max-height: 380px; overflow-x: hidden;">
-					    <table class="table align-middle table-hover m-0 w-100" style="table-layout: fixed;">
-					        <thead class="table-light sticky-top" style="z-index: 1;">
-					            <tr>
-					                <th class="py-2 ps-3" style="width: 65%; font-size: 0.75rem; letter-spacing: 0.05em; text-transform: uppercase; color:#64748b;">Nama Pejabat</th>
-					                <th class="py-2 text-center" style="width: 35%; font-size: 0.75rem; letter-spacing: 0.05em; text-transform: uppercase; color:#64748b;">Status</th>
-					            </tr>
-					        </thead>
-					        <tbody id="tabel-edit-status-body">
-					            </tbody>
-					    </table>
-					</div>
-            </div>
+			<div class="modal-body px-4">
+			    <p class="small text-muted mb-3">Ubah status kehadiran pejabat KPU di bawah ini menggunakan tombol sakelar, lalu klik simpan perubahan.</p>
+			    
+			    <div class="border rounded-3 overflow-hidden">
+			        <div class="row g-0 bg-light py-2 px-3 border-bottom fw-bold text-uppercase text-secondary" style="font-size: 0.75rem; letter-spacing: 0.05em;">
+			            <div class="col-8">Nama Pejabat</div>
+			            <div class="col-4 text-center">Tersedia?</div>
+			        </div>
+			        
+			        <div id="tabel-edit-status-body" style="max-height: 340px; overflow-y: auto; overflow-x: hidden;">
+			            </div>
+			    </div>
+			</div>
             <div class="modal-footer border-0 pb-4 px-4 pt-2">
                 <button type="button" class="btn btn-light btn-round text-secondary px-4 border" data-bs-dismiss="modal">Batal</button>
                 <button type="button" id="btn-simpan-status-pejabat" class="btn btn-primary btn-round px-4" onclick="kirimPerubahanStatusCloud()" style="background-color: #4f46e5; border:none;">
