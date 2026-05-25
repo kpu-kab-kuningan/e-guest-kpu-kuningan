@@ -14,10 +14,11 @@ const form = document.getElementById('guest-form');
 const btnExport = document.getElementById('btn-export');
 
 let tumpukanFotoBase64 = "";
-let memoriCloudLokal = []; // Menyimpan salinan data tamu dari cloud
-let keyWaktuEditCloud = ""; // Menyimpan kunci waktu data yang sedang di-edit
+let memoriCloudLokal = [];    // Salinan data tamu
+let memoriPegawaiLokal = [];  // Salinan data pegawai/pejabat
+let keyWaktuEditCloud = "";  
 let indeksAksiDipilih = null; 
-let tipeAksiInternal = ""; // Penanda jenis aksi: "EDIT", "DELETE", atau "CLEAR"
+let tipeAksiInternal = "";   
 
 // 1. Jalankan Kamera Otomatis Saat Aplikasi Dibuka
 if (video) {
@@ -46,11 +47,10 @@ btnRetry?.addEventListener('click', () => {
     photoPreview.style.display = 'none';
     video.style.display = 'block';
     btnSnap.style.display = 'inline-block';
-    btnRetry.style.none;
     btnRetry.style.display = 'none';
 });
 
-// 4. Manajemen Submit Form (Tambah Baru / Edit di Cloud)
+// 4. Manajemen Submit Form Tamu
 form?.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -77,12 +77,9 @@ form?.addEventListener('submit', async (e) => {
     btnSubmit.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Memproses Cloud...`;
 
     try {
-        // DISINI LETAK PUBLIC HEADERS UNTUK ANTI-CORS / BYPASS OPTIONS 405
         const response = await fetch(SCRIPT_URL, {
             method: 'POST',
-            headers: {
-                "Content-Type": "text/plain;charset=utf-8"
-            },
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
             body: JSON.stringify(dataTamu)
         });
         
@@ -116,7 +113,7 @@ function convertDriveUrlToDirect(url) {
     return url;
 }
 
-// 5. Muat KPI Dashboard, Tabel Tamu, & Status Pejabat
+// 5. Muat Utama Dashboard, Tabel Tamu, & Kartu Pejabat
 async function loadDashboard() {
     const tbody = document.getElementById('tabel-tamu-body');
     const containerPejabat = document.getElementById('container-status-pejabat');
@@ -129,55 +126,19 @@ async function loadDashboard() {
         const hasil = await response.json();
         if (hasil.status !== 'success') throw new Error(hasil.message);
 
-        // A. PROSES DATA TAMU
-        memoriCloudLokal = hasil.dataTamu; // MEMPERBAIKI MITMATCH JALUR DATA GAS
-        
-        // Hitung KPI Hari ini berdasarkan format tanggal Indonesia
+        // A. AMBIL DATA TAMU
+        memoriCloudLokal = hasil.dataTamu || [];
         const todayStr = new Date().toLocaleDateString('id-ID');
         const tamuHariIni = memoriCloudLokal.filter(item => item.waktu && item.waktu.includes(todayStr)).length;
         
         if(document.getElementById('dash-total')) document.getElementById('dash-total').textContent = memoriCloudLokal.length;
         if(document.getElementById('dash-today')) document.getElementById('dash-today').textContent = tamuHariIni;
 
-        // Render tabel utama
         renderTabelLengkap(memoriCloudLokal);
 
-        // B. PROSES DATA STATUS PEJABAT (GEN-Z CARDS)
-        if (containerPejabat && hasil.dataPegawai) {
-            containerPejabat.innerHTML = "";
-            if (hasil.dataPegawai.length === 0) {
-                containerPejabat.innerHTML = `<div class="text-center py-4 text-muted w-100">Belum ada data pegawai di Sheet.</div>`;
-            } else {
-                hasil.dataPegawai.forEach(p => {
-                    const isAvailable = p.available.toLowerCase() === 'yes';
-                    const statusColor = isAvailable ? '#10b981' : '#94a3b8'; 
-                    const statusLabel = isAvailable ? 'Tersedia' : 'Dinas Luar / Sibuk';
-                    
-                    const card = document.createElement('div');
-                    card.className = "col-md-6 col-lg-4";
-                    card.innerHTML = `
-                        <div class="card border-0 shadow-sm p-3 h-100" style="border-radius: 16px; background: #fff; border: 1px solid #f1f5f9 !important;">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" 
-                                     style="width: 50px; height: 50px; background: ${isAvailable ? '#4f46e5' : '#64748b'}; font-size: 1.2rem;">
-                                    ${p.nama.charAt(0)}
-                                </div>
-                                <div class="flex-grow-1">
-                                    <h6 class="mb-0 fw-bold text-dark" style="font-size:0.95rem;">${p.nama}</h6>
-                                    <small class="text-muted d-block" style="font-size: 0.75rem;">${p.jabatan}</small>
-                                </div>
-                                <div class="text-end">
-                                    <span class="badge" style="background: ${statusColor}20; color: ${statusColor}; font-size: 0.7rem; border: 1px solid ${statusColor}40; padding: 6px 10px; border-radius: 8px;">
-                                        <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i> ${statusLabel}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    containerPejabat.appendChild(card);
-                });
-            }
-        }
+        // B. AMBIL DATA PEJABAT
+        memoriPegawaiLokal = hasil.dataPegawai || [];
+        renderKartuPejabat(memoriPegawaiLokal);
 
     } catch (error) {
         console.error("Gagal memuat dashboard cloud:", error);
@@ -185,7 +146,47 @@ async function loadDashboard() {
     }
 }
 
-// Fungsi Terpisah untuk merender data ke dalam tabel (Mendukung Fitur Filter)
+// Render Kartu Pejabat Dinamis (Gen-Z Clean Grid View)
+function renderKartuPejabat(dataArray) {
+    const containerPejabat = document.getElementById('container-status-pejabat');
+    if (!containerPejabat) return;
+    containerPejabat.innerHTML = "";
+    
+    if (dataArray.length === 0) {
+        containerPejabat.innerHTML = `<div class="text-center py-4 text-muted w-100">Tidak ada data pejabat yang cocok.</div>`;
+        return;
+    }
+    
+    dataArray.forEach(p => {
+        const isAvailable = p.available.toLowerCase() === 'yes';
+        const statusColor = isAvailable ? '#10b981' : '#94a3b8'; 
+        const statusLabel = isAvailable ? 'Tersedia' : 'Dinas Luar / Sibuk';
+        
+        const card = document.createElement('div');
+        card.className = "col-md-6 col-lg-4";
+        card.innerHTML = `
+            <div class="card border-0 shadow-sm p-3 h-100" style="border-radius: 16px; background: #fff; border: 1px solid #f1f5f9 !important;">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-sm" 
+                         style="width: 50px; height: 50px; background: ${isAvailable ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'linear-gradient(135deg, #94a3b8, #64748b)'}; font-size: 1.2rem;">
+                        ${p.nama.charAt(0)}
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6 class="mb-0 fw-bold text-dark" style="font-size:0.95rem;">${p.nama}</h6>
+                        <small class="text-muted d-block" style="font-size: 0.75rem;">${p.jabatan}</small>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge" style="background: ${statusColor}20; color: ${statusColor}; font-size: 0.7rem; border: 1px solid ${statusColor}40; padding: 6px 10px; border-radius: 8px;">
+                            <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i> ${statusLabel}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        `;
+        containerPejabat.appendChild(card);
+    });
+}
+
 function renderTabelLengkap(dataArray) {
     const tbody = document.getElementById('tabel-tamu-body');
     if (!tbody) return;
@@ -227,22 +228,13 @@ function renderTabelLengkap(dataArray) {
     });
 }
 
-// ==========================================
-// LOGIKA FILTER TERPADU (BULAN + SEARCH BAR)
-// ==========================================
+// Filter Pencarian Tabel Tamu
 function jalankanFilterTerpadu() {
     const kataKunci = document.getElementById('search-input')?.value.toLowerCase() || "";
     const filterBulan = document.getElementById('filter-bulan')?.value || "ALL";
 
     const dataHasilFilter = memoriCloudLokal.filter(item => {
-        // 1. Logika Pencarian Teks
-        const cocokSearch = 
-            item.nama.toLowerCase().includes(kataKunci) ||
-            item.instansi.toLowerCase().includes(kataKunci) ||
-            item.tujuan.toLowerCase().includes(kataKunci) ||
-            item.keperluan.toLowerCase().includes(kataKunci);
-
-        // 2. Logika Pencarian Bulan (Mendeteksi format DD/MM/YYYY atau DD-MM-YYYY)
+        const cocokSearch = item.nama.toLowerCase().includes(kataKunci) || item.instansi.toLowerCase().includes(kataKunci) || item.tujuan.toLowerCase().includes(kataKunci) || item.keperluan.toLowerCase().includes(kataKunci);
         let cocokBulan = true;
         if (filterBulan !== "ALL" && item.waktu) {
             const bagianTanggal = item.waktu.split(',')[0]; 
@@ -252,122 +244,159 @@ function jalankanFilterTerpadu() {
                 cocokBulan = (bulanData === filterBulan);
             }
         }
-
         return cocokSearch && cocokBulan;
     });
-
     renderTabelLengkap(dataHasilFilter);
 }
-
-// Event Listener untuk kotak Search Bar atas
 document.getElementById('search-input')?.addEventListener('input', jalankanFilterTerpadu);
 
-// Event Listener untuk Custom Dropdown Bulan Modern Bootstrap 5
+// FILTER LIVE UNTUK KARTU PEJABAT (FITUR BARU)
+document.getElementById('search-pejabat')?.addEventListener('input', function() {
+    const kataKunci = this.value.toLowerCase();
+    const dataHasilFilter = memoriPegawaiLokal.filter(p => 
+        p.nama.toLowerCase().includes(kataKunci) || 
+        p.jabatan.toLowerCase().includes(kataKunci)
+    );
+    renderKartuPejabat(dataHasilFilter);
+});
+
+// Dropdown filter bulan tamu
 document.querySelectorAll('.dropdown-menu .dropdown-item').forEach(item => {
     item.addEventListener('click', function(e) {
         e.preventDefault();
         const nilaiBulan = this.getAttribute('data-val');
         if (!nilaiBulan) return;
-
         document.getElementById('label-filter-bulan').textContent = this.textContent;
         document.getElementById('filter-bulan').value = nilaiBulan;
-
-        document.querySelectorAll('.dropdown-menu .dropdown-item').forEach(el => {
-            el.classList.remove('active', 'bg-primary', 'text-white');
-        });
+        document.querySelectorAll('.dropdown-menu .dropdown-item').forEach(el => el.classList.remove('active', 'bg-primary', 'text-white'));
         this.classList.add('active', 'bg-primary', 'text-white');
-
         jalankanFilterTerpadu();
     });
 });
 
-// ==========================================
-// FUNGSI NAVIGASI UTAMA SIDEBAR
-// ==========================================
+// Navigasi Menu Utama Sidebar
 function gantiTampilanUtama(namaTampilan) {
-    const views = {
-        'dashboard': document.getElementById('view-dashboard'),
-        'tambah': document.getElementById('view-tambah'),
-        'pejabat': document.getElementById('view-pejabat')
-    };
-    const menus = {
-        'dashboard': document.getElementById('menu-dashboard'),
-        'tambah': document.getElementById('menu-tambah'),
-        'pejabat': document.getElementById('menu-pejabat')
-    };
+    const views = { 'dashboard': document.getElementById('view-dashboard'), 'tambah': document.getElementById('view-tambah'), 'pejabat': document.getElementById('view-pejabat') };
+    const menus = { 'dashboard': document.getElementById('menu-dashboard'), 'tambah': document.getElementById('menu-tambah'), 'pejabat': document.getElementById('menu-pejabat') };
     const judulHeader = document.getElementById('judul-halaman');
 
-    // Reset dan sembunyikan semua halaman view
     Object.keys(views).forEach(key => {
-        if (views[key]) {
-            views[key].classList.remove('d-block');
-            views[key].classList.add('d-none');
-        }
+        if (views[key]) { views[key].classList.remove('d-block'); views[key].classList.add('d-none'); }
         if (menus[key]) menus[key].classList.remove('active');
     });
 
-    // Tampilkan halaman aktif yang dipilih
-    if (views[namaTampilan]) {
-        views[namaTampilan].classList.remove('d-none');
-        views[namaTampilan].classList.add('d-block');
-    }
+    if (views[namaTampilan]) { views[namaTampilan].classList.remove('d-none'); views[namaTampilan].classList.add('d-block'); }
     if (menus[namaTampilan]) menus[namaTampilan].classList.add('active');
 
-    // Ubah Judul Header Atas secara Dinamis
     if (judulHeader) {
         if(namaTampilan === 'dashboard') judulHeader.innerText = "Dashboard Monitoring Tamu";
         if(namaTampilan === 'tambah') judulHeader.innerText = "Form Pendataan Tamu";
         if(namaTampilan === 'pejabat') judulHeader.innerText = "Informasi Status Pejabat";
     }
-
-    // Tutup otomatis sidebar jika diakses dari Handphone
-    if (window.innerWidth <= 768) {
-        document.getElementById('wrapper')?.classList.remove('toggled');
-    }
+    if (window.innerWidth <= 768) document.getElementById('wrapper')?.classList.remove('toggled');
 }
 
-// ==========================================
-// JALUR VALIDASI INTERFACES MODAL PIN DIGITAL
-// ==========================================
+// Proteksi PIN Verifikasi
 function bukaModalPinKpu(index, aksi) {
     indeksAksiDipilih = index;
     tipeAksiInternal = aksi;
-    
     document.getElementById('input-pin').value = "";
     document.getElementById('pin-error').classList.add('d-none');
-    
-    const pinModal = new bootstrap.Modal(document.getElementById('pinModal'));
-    pinModal.show();
+    new bootstrap.Modal(document.getElementById('pinModal')).show();
 }
 
 document.getElementById('btn-verify-pin')?.addEventListener('click', () => {
     const inputPin = document.getElementById('input-pin').value;
-    
     if (inputPin !== PIN_KEAMANAN_KPU) {
         document.getElementById('pin-error').classList.remove('d-none');
         return;
     }
-
-    const pinModalElement = document.getElementById('pinModal');
-    const modalInstance = bootstrap.Modal.getInstance(pinModalElement);
+    const modalInstance = bootstrap.Modal.getInstance(document.getElementById('pinModal'));
     modalInstance.hide();
 
-    if (tipeAksiInternal === "EDIT") {
-        eksekusiEditCloud(indeksAksiDipilih);
-    } else if (tipeAksiInternal === "DELETE") {
-        eksekusiDeleteCloud(indeksAksiDipilih);
-    } else if (tipeAksiInternal === "CLEAR") {
-        eksekusiClearData();
-    }
+    if (tipeAksiInternal === "EDIT") eksekusiEditCloud(indeksAksiDipilih);
+    else if (tipeAksiInternal === "DELETE") eksekusiDeleteCloud(indeksAksiDipilih);
+    else if (tipeAksiInternal === "CLEAR") eksekusiClearData();
+    else if (tipeAksiInternal === "MANAGE_PEJABAT") eksekusiBukaModalKelolaStatus(); // Akses khusus Pejabat
 });
 
-// 6. Jalur Eksekusi Form Edit
+// Pemicu Tombol Kelola Status Pejabat
+function mintaAksesKelolaStatus() {
+    bukaModalPinKpu(null, 'MANAGE_PEJABAT');
+}
+
+// Buka Modal Pop-up Dropdown Pejabat (FITUR BARU)
+function eksekusiBukaModalKelolaStatus() {
+    const tbody = document.getElementById('tabel-edit-status-body');
+    if (!tbody) return;
+    tbody.innerHTML = "";
+
+    memoriPegawaiLokal.forEach((p) => {
+        const isYes = p.available.toLowerCase() === 'yes';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td class="fw-bold text-dark ps-3" style="font-size: 0.9rem; white-space:nowrap;">${p.nama}</td>
+            <td class="text-muted small">${p.jabatan}</td>
+            <td>
+                <select class="form-select form-select-sm select-status-pejabat btn-round shadow-none" data-nama="${p.nama}" style="font-size: 0.85rem; border-color:#cbd5e1;">
+                    <option value="Yes" ${isYes ? 'selected' : ''}>🟢 Tersedia (Yes)</option>
+                    <option value="No" ${!isYes ? 'selected' : ''}>🔴 Dinas Luar / Sibuk (No)</option>
+                </select>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    new bootstrap.Modal(document.getElementById('modalStatusPejabat')).show();
+}
+
+// Kirim Batch Perubahan Status ke Google Sheet Cloud (FITUR BARU)
+async function kirimPerubahanStatusCloud() {
+    const selects = document.querySelectorAll('.select-status-pejabat');
+    const updates = [];
+
+    selects.forEach(sel => {
+        updates.push({
+            nama: sel.getAttribute('data-nama'),
+            available: sel.value
+        });
+    });
+
+    const btnSimpan = document.getElementById('btn-simpan-status-pejabat');
+    const originalText = btnSimpan.innerHTML;
+    btnSimpan.disabled = true;
+    btnSimpan.innerHTML = `<span class="spinner-border spinner-border-sm" role="status"></span> Menyimpan ke Cloud...`;
+
+    try {
+        const response = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({
+                action: "UPDATE_STATUS_PEJABAT",
+                updates: updates
+            })
+        });
+
+        const hasil = await response.json();
+        if (hasil.status !== 'success') throw new Error(hasil.message);
+
+        alert("✓ Sukses! Status ketersediaan pejabat berhasil diperbarui di Cloud KPU Kuningan.");
+        bootstrap.Modal.getInstance(document.getElementById('modalStatusPejabat')).hide();
+        loadDashboard();
+
+    } catch (error) {
+        console.error("Error update status pejabat:", error);
+        alert("⚠️ Gagal memperbarui status ke Cloud Google. Periksa jaringan.");
+    } finally {
+        btnSimpan.disabled = false;
+        btnSimpan.innerHTML = originalText;
+    }
+}
+
 function eksekusiEditCloud(index) {
     const item = memoriCloudLokal[index];
-
     document.getElementById('edit-index').value = index;
     keyWaktuEditCloud = item.waktu;
-
     document.getElementById('nama').value = item.nama;
     document.getElementById('instansi').value = item.instansi;
     document.getElementById('whatsapp').value = item.whatsapp;
@@ -385,11 +414,9 @@ function eksekusiEditCloud(index) {
     document.getElementById('btn-submit').className = "btn btn-warning w-100 py-2 fw-bold text-dark";
     document.getElementById('btn-submit').innerHTML = `<i class="bi bi-save-fill me-2"></i>Perbarui Kehadiran Cloud`;
     document.getElementById('btn-cancel-edit').style.display = "block";
-
-    gantiTampilanUtama('tambah'); // Memakai fungsi navigasi aman
+    gantiTampilanUtama('tambah');
 }
 
-// 7. Fungsi Batalkan Edit
 function cancelEdit() {
     form.reset();
     document.getElementById('edit-index').value = "";
@@ -399,7 +426,6 @@ function cancelEdit() {
     video.style.display = 'block';
     btnSnap.style.display = 'inline-block';
     btnRetry.style.display = 'none';
-
     document.getElementById('form-title').textContent = "Data Kunjungan";
     document.getElementById('btn-submit').className = "btn btn-primary w-100 py-2 fw-bold";
     document.getElementById('btn-submit').style.backgroundColor = "#4f46e5";
@@ -407,81 +433,51 @@ function cancelEdit() {
     document.getElementById('btn-cancel-edit').style.display = "none";
 }
 
-// 8. Jalur Eksekusi Hapus Berkas Cloud
 async function eksekusiDeleteCloud(index) {
     const item = memoriCloudLokal[index];
     if (!confirm(`Apakah Peserta yakin ingin menghapus kunjungan dari "${item.nama}" secara permanen?`)) return;
 
     const tbody = document.getElementById('tabel-tamu-body');
-    if(tbody) tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4"><span class="spinner-border spinner-border-sm text-danger" role="status"></span> Menghapus data dari Cloud...</td></tr>`;
+    if(tbody) tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4"><span class="spinner-border spinner-border-sm text-danger" role="status"></span> Menghapus data...</td></tr>`;
 
     try {
         const response = await fetch(SCRIPT_URL, {
             method: 'POST',
-            headers: {
-                "Content-Type": "text/plain;charset=utf-8"
-            },
-            body: JSON.stringify({
-                action: "DELETE",
-                waktu: item.waktu
-            })
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({ action: "DELETE", waktu: item.waktu })
         });
-
         const hasil = await response.json();
         if (hasil.status !== 'success') throw new Error(hasil.message);
-
         alert("✓ Sukses! Data & Foto berhasil dimusnahkan dari Cloud Google.");
         loadDashboard();
-
     } catch (error) {
-        console.error("Gagal menghapus data:", error);
         alert("⚠️ Gagal menghapus data dari server Cloud. Periksa koneksi internet.");
         loadDashboard();
     }
 }
 
-// 9. Preview Foto Besar
 function viewPhoto(base64Src) {
     document.getElementById('modal-img-view').src = base64Src;
-    const photoModal = new bootstrap.Modal(document.getElementById('photoModal'));
-    photoModal.show();
+    new bootstrap.Modal(document.getElementById('photoModal')).show();
 }
 
-// 10. Bersihkan Seluruh Database Perangkat (Terproteksi Modal PIN)
-function clearData() {
-    bukaModalPinKpu(null, 'CLEAR');
-}
+function clearData() { bukaModalPinKpu(null, 'CLEAR'); }
+function eksekusiClearData() { localStorage.removeItem('kpu_guestbook'); alert("Local storage dibersihkan."); loadDashboard(); }
 
-function eksekusiClearData() {
-    localStorage.removeItem('kpu_guestbook');
-    alert("Local storage berhasil dibersihkan.");
-    loadDashboard();
-}
-
-// 11. GENERATE ZIP DATA CLOUD
 btnExport?.addEventListener('click', () => {
     if (memoriCloudLokal.length === 0) return alert("Tidak ada data kunjungan untuk diekspor.");
-
     const zip = new JSZip();
     let csvContent = "\uFEFFsep=,\nWaktu Kunjungan,Nama Lengkap,Instansi / Asal,No. Whatsapp,Tujuan,Keperluan,Tautan Foto Cloud\n";
-
     memoriCloudLokal.forEach((item) => {
-        let row = `"${item.waktu}","${item.nama.replace(/"/g, '""')}","${item.instansi.replace(/"/g, '""')}","${item.whatsapp}","${item.tujuan.replace(/"/g, '""')}","${item.keperluan.replace(/"/g, '""')}","${item.foto}"`;
-        csvContent += row + "\n";
+        csvContent += `"${item.waktu}","${item.nama.replace(/"/g, '""')}","${item.instansi.replace(/"/g, '""')}","${item.whatsapp}","${item.tujuan.replace(/"/g, '""')}","${item.keperluan.replace(/"/g, '""')}","${item.foto}"\n`;
     });
-
     zip.file("Data_Tamu_Cloud_KPU_Kuningan.csv", csvContent);
     zip.generateAsync({ type: "blob" }).then(function(content) {
         const link = document.createElement("a");
         link.href = URL.createObjectURL(content);
         link.download = `Rekap_Buku_Tamu_Cloud_${Date.now()}.zip`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        document.body.appendChild(link); link.click(); document.body.removeChild(link);
     });
 });
 
-// Jalankan fungsi dashboard saat halaman selesai dimuat pertama kali
-document.addEventListener("DOMContentLoaded", () => {
-    loadDashboard();
-});
+document.addEventListener("DOMContentLoaded", () => { loadDashboard(); });
