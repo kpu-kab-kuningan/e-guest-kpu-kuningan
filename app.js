@@ -336,7 +336,6 @@ function eksekusiBukaModalKelolaStatus() {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td class="fw-bold text-dark ps-3" style="font-size: 0.9rem; white-space:nowrap;">${p.nama}</td>
-            <td class="text-muted small">${p.jabatan}</td>
             <td>
                 <select class="form-select form-select-sm select-status-pejabat btn-round shadow-none" data-nama="${p.nama}" style="font-size: 0.85rem; border-color:#cbd5e1;">
                     <option value="Yes" ${isYes ? 'selected' : ''}>🟢 Tersedia (Yes)</option>
