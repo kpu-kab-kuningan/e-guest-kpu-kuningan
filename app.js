@@ -351,15 +351,17 @@ function eksekusiBukaModalKelolaStatus() {
     new bootstrap.Modal(document.getElementById('modalStatusPejabat')).show();
 }
 
-// Kirim Batch Perubahan Status ke Google Sheet Cloud (FITUR BARU)
+// Kirim Batch Perubahan Status Switch ke Google Sheet Cloud
 async function kirimPerubahanStatusCloud() {
-    const selects = document.querySelectorAll('.select-status-pejabat');
+    // Ambil semua elemen checkbox/switch aktif
+    const checkboxes = document.querySelectorAll('.check-status-pejabat');
     const updates = [];
 
-    selects.forEach(sel => {
+    checkboxes.forEach(chk => {
         updates.push({
-            nama: sel.getAttribute('data-nama'),
-            available: sel.value
+            nama: chk.getAttribute('data-nama'),
+            // Jika dicentang (true) kirim "Yes", jika kosong (false) kirim "No"
+            available: chk.checked ? "Yes" : "No"
         });
     });
 
