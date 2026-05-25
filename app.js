@@ -1,7 +1,7 @@
 // ==========================================
 // KUNCI INTEGRASI CLOUD GOOGLE WORKSPACE
 // ==========================================
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxQxJBFSItjEHU03tl5BsJL5Fo60ni5-YcYyjTSOSv9p2wu1iV8KOdE_mWoE2w7JVTY1A/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwou71aDQvqioG_4-F9Tlme1OwpvWcCyPcwfDoISbytpf3w5Oi31AyNpDTiNsmrBxN3Fg/exec";
 const PIN_KEAMANAN_KPU = "657139"; // PIN rahasia Peserta
 
 // Inisialisasi Elemen HTML
