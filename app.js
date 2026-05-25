@@ -146,7 +146,7 @@ async function loadDashboard() {
     }
 }
 
-// Render Kartu Pejabat Dinamis (Gen-Z Clean Grid View)
+// Render Kartu Pejabat Dinamis (Gen-Z Clean Grid View - Versi Kelompok)
 function renderKartuPejabat(dataArray) {
     const containerPejabat = document.getElementById('container-status-pejabat');
     if (!containerPejabat) return;
@@ -157,34 +157,89 @@ function renderKartuPejabat(dataArray) {
         return;
     }
     
-    dataArray.forEach(p => {
-        const isAvailable = p.available.toLowerCase() === 'yes';
-        const statusColor = isAvailable ? '#10b981' : '#94a3b8'; 
-        const statusLabel = isAvailable ? 'Available' : 'Dinas Luar / Sibuk';
-        
-        const card = document.createElement('div');
-        card.className = "col-md-6 col-lg-4";
-        card.innerHTML = `
-            <div class="card border-0 shadow-sm p-3 h-100" style="border-radius: 16px; background: #fff; border: 1px solid #f1f5f9 !important;">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-sm" 
-                         style="width: 50px; height: 50px; background: ${isAvailable ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'linear-gradient(135deg, #94a3b8, #64748b)'}; font-size: 1.2rem;">
-                        ${p.nama.charAt(0)}
-                    </div>
-                    <div class="flex-grow-1">
-                        <h6 class="mb-0 fw-bold text-dark" style="font-size:0.95rem;">${p.nama}</h6>
-                        <small class="text-muted d-block" style="font-size: 0.75rem;">${p.jabatan}</small>
-                    </div>
-                    <div class="text-end">
-                        <span class="badge" style="background: ${statusColor}20; color: ${statusColor}; font-size: 0.7rem; border: 1px solid ${statusColor}40; padding: 6px 10px; border-radius: 8px;">
-                            <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i> ${statusLabel}
-                        </span>
-                    </div>
-                </div>
+    // 1. Pisahkan dataArray ke dalam 2 kelompok berdasarkan index asli di memoriPegawaiLokal
+    // Index 0-4 = Komisioner, Index 5-9 = Kesekretariatan
+    const kelompokKomisioner = dataArray.filter(p => {
+        const indexAsli = memoriPegawaiLokal.findIndex(orig => orig.nama === p.nama);
+        return indexAsli >= 0 && indexAsli <= 4;
+    });
+
+    const kelompokSekretariat = dataArray.filter(p => {
+        const indexAsli = memoriPegawaiLokal.findIndex(orig => orig.nama === p.nama);
+        return indexAsli >= 5 && indexAsli <= 9;
+    });
+
+    // 2. Tampilkan Kelompok KOMISIONER (Jika ada data yang cocok)
+    if (kelompokKomisioner.length > 0) {
+        // Sub-header Komisioner (Menggunakan col-12 agar memotong baris grid dengan rapi)
+        const headerKom = document.createElement('div');
+        headerKom.className = "col-12 mt-2 mb-3";
+        headerKom.innerHTML = `
+            <div class="d-flex align-items-center gap-2 border-bottom pb-2">
+                <span style="font-size: 1.1rem;">💼</span>
+                <h5 class="m-0 fw-bold text-dark" style="font-size: 0.95rem; letter-spacing: 0.03em;">KOMISIONER KPU KAB. KUNINGAN</h5>
+                <span class="badge bg-primary-subtle text-primary rounded-pill px-2" style="font-size: 0.75rem;">${kelompokKomisioner.length}</span>
             </div>
         `;
-        containerPejabat.appendChild(card);
-    });
+        containerPejabat.appendChild(headerKom);
+
+        // Gambar Card Komisioner
+        kelompokKomisioner.forEach(p => {
+            const card = buatElemenCardPejabat(p);
+            containerPejabat.appendChild(card);
+        });
+    }
+
+    // 3. Tampilkan Kelompok SEKRETARIAT (Jika ada data yang cocok)
+    if (kelompokSekretariat.length > 0) {
+        // Sub-header Sekretariat
+        const headerSek = document.createElement('div');
+        headerSek.className = "col-12 mt-4 mb-3";
+        headerSek.innerHTML = `
+            <div class="d-flex align-items-center gap-2 border-bottom pb-2">
+                <span style="font-size: 1.1rem;">🏢</span>
+                <h5 class="m-0 fw-bold text-dark" style="font-size: 0.95rem; letter-spacing: 0.03em;">SEKRETARIAT KPU KAB. KUNINGAN</h5>
+                <span class="badge bg-success-subtle text-success rounded-pill px-2" style="font-size: 0.75rem;">${kelompokSekretariat.length}</span>
+            </div>
+        `;
+        containerPejabat.appendChild(headerSek);
+
+        // Gambar Card Sekretariat
+        kelompokSekretariat.forEach(p => {
+            const card = buatElemenCardPejabat(p);
+            containerPejabat.appendChild(card);
+        });
+    }
+}
+
+// Fungsi bantu untuk mencetak Card sesuai desain asli Peserta
+function buatElemenCardPejabat(p) {
+    const isAvailable = p.available.toLowerCase() === 'yes';
+    const statusColor = isAvailable ? '#10b981' : '#94a3b8'; 
+    const statusLabel = isAvailable ? 'Available' : 'Dinas Luar / Sibuk';
+    
+    const card = document.createElement('div');
+    card.className = "col-md-6 col-lg-4 mb-3"; // Ditambahkan mb-3 agar antar baris card punya jarak
+    card.innerHTML = `
+        <div class="card border-0 shadow-sm p-3 h-100" style="border-radius: 16px; background: #fff; border: 1px solid #f1f5f9 !important;">
+            <div class="d-flex align-items-center gap-3">
+                <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-sm" 
+                     style="width: 50px; height: 50px; background: ${isAvailable ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'linear-gradient(135deg, #94a3b8, #64748b)'}; font-size: 1.2rem;">
+                    ${p.nama.charAt(0)}
+                </div>
+                <div class="flex-grow-1" style="min-width: 0;">
+                    <h6 class="mb-0 fw-bold text-dark text-truncate" style="font-size:0.95rem;" title="${p.nama}">${p.nama}</h6>
+                    <small class="text-muted d-block text-truncate" style="font-size: 0.75rem;" title="${p.jabatan}">${p.jabatan}</small>
+                </div>
+                <div class="text-end flex-shrink-0">
+                    <span class="badge" style="background: ${statusColor}20; color: ${statusColor}; font-size: 0.7rem; border: 1px solid ${statusColor}40; padding: 6px 10px; border-radius: 8px;">
+                        <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i> ${statusLabel}
+                    </span>
+                </div>
+            </div>
+        </div>
+    `;
+    return card;
 }
 
 function renderTabelLengkap(dataArray) {
