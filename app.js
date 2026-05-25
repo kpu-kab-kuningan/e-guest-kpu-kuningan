@@ -1,7 +1,7 @@
 // ==========================================
 // KUNCI INTEGRASI CLOUD GOOGLE WORKSPACE
 // ==========================================
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzLkt4uA4mphlac0wHaXOOUKusm3JIxM__AxjJNPuADHIHn3W2sFyUI0QEI3DclXYX99Q/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzavwxyBJkap7uqbmuf_Y8OIVMGpYX-h3B2fvoOyc_7pdmYalhQW1lR5ZzjycIELy7aUg/exec";
 const PIN_KEAMANAN_KPU = "657139"; // PIN rahasia Peserta (6 Digit)
 
 // Inisialisasi Elemen Form & Kamera
@@ -28,39 +28,36 @@ document.getElementById('menu-toggle')?.addEventListener('click', function() {
     document.getElementById('wrapper').classList.toggle('toggled');
 });
 
-// Pindah Antar Layar (Dashboard vs Tambah Tamu)
+// 1. Update Fungsi Navigasi Utama
 function gantiTampilanUtama(namaTampilan) {
-    const viewDash = document.getElementById('view-dashboard');
-    const viewTambah = document.getElementById('view-tambah');
-    const menuDash = document.getElementById('menu-dashboard');
-    const menuTambah = document.getElementById('menu-tambah');
+    const views = {
+        'dashboard': document.getElementById('view-dashboard'),
+        'tambah': document.getElementById('view-tambah'),
+        'pejabat': document.getElementById('view-pejabat')
+    };
+    const menus = {
+        'dashboard': document.getElementById('menu-dashboard'),
+        'tambah': document.getElementById('menu-tambah'),
+        'pejabat': document.getElementById('menu-pejabat')
+    };
     const judulHeader = document.getElementById('judul-halaman');
 
-    if (namaTampilan === 'dashboard') {
-        viewDash.classList.remove('d-none');
-        viewDash.classList.add('d-block');
-        viewTambah.classList.remove('d-block');
-        viewTambah.classList.add('d-none');
-        
-        menuDash.classList.add('active');
-        menuTambah.classList.remove('active');
-        judulHeader.innerText = "Dashboard Monitoring Tamu";
-        
-        // Auto tutup sidebar jika sedang diakses dari HP
-        if (window.innerWidth <= 768) document.getElementById('wrapper').classList.remove('toggled');
-        
-    } else if (namaTampilan === 'tambah') {
-        viewTambah.classList.remove('d-none');
-        viewTambah.classList.add('d-block');
-        viewDash.classList.remove('d-block');
-        viewDash.classList.add('d-none');
-        
-        menuTambah.classList.add('active');
-        menuDash.classList.remove('active');
-        judulHeader.innerText = "Form Pendataan Tamu";
-        
-        if (window.innerWidth <= 768) document.getElementById('wrapper').classList.remove('toggled');
+    // Reset semua tampilan
+    Object.values(views).forEach(v => { v.classList.replace('d-block', 'd-none'); });
+    Object.values(menus).forEach(m => { m.classList.remove('active'); });
+
+    // Aktifkan yang dipilih
+    views[namaTampilan].classList.replace('d-none', 'd-block');
+    menus[namaTampilan].classList.add('active');
+
+    if(namaTampilan === 'dashboard') judulHeader.innerText = "Dashboard Monitoring Tamu";
+    if(namaTampilan === 'tambah') judulHeader.innerText = "Form Pendataan Tamu";
+    if(namaTampilan === 'pejabat') {
+        judulHeader.innerText = "Informasi Status Pejabat";
+        // Tidak perlu load ulang, data sudah diambil saat loadDashboard()
     }
+
+    if (window.innerWidth <= 768) document.getElementById('wrapper').classList.remove('toggled');
 }
 
 // ==========================================
@@ -145,66 +142,56 @@ form?.addEventListener('submit', async (e) => {
     }
 });
 
-// ==========================================
-// TAMPILAN DASHBOARD DATA & KEAMANAN PIN
-// ==========================================
-
+// 2. Perbarui Fungsi loadDashboard untuk memproses Data Pegawai
 async function loadDashboard() {
     const tbody = document.getElementById('tabel-tamu-body');
-    if (!tbody) return;
-    tbody.innerHTML = `<tr><td colspan="9" class="text-center py-5 text-primary"><span class="spinner-border spinner-border-sm" role="status"></span> Menyinkronkan Data Cloud KPU...</td></tr>`;
+    const containerPejabat = document.getElementById('container-status-pejabat');
+    
+    tbody.innerHTML = `<tr><td colspan="9" class="text-center py-5 text-primary"><span class="spinner-border spinner-border-sm"></span> Sinkronisasi...</td></tr>`;
+    containerPejabat.innerHTML = `<div class="text-center py-5 w-100 text-muted">Menghubungkan ke Cloud...</div>`;
 
     try {
         const response = await fetch(SCRIPT_URL);
         const hasil = await response.json();
         if (hasil.status !== 'success') throw new Error(hasil.message);
 
-        memoriCloudLokal = hasil.data; 
-        const todayStr = new Date().toLocaleDateString('id-ID');
+        // A. Proses Data Tamu (Logika lama tetap sama)
+        memoriCloudLokal = hasil.dataTamu; 
+        renderTabelLengkap(memoriCloudLokal); // Pastikan buat fungsi render terpisah agar rapi
 
-        const tamuHariIni = memoriCloudLokal.filter(item => item.waktu && item.waktu.includes(todayStr)).length;
-        document.getElementById('dash-total').textContent = memoriCloudLokal.length;
-        document.getElementById('dash-today').textContent = tamuHariIni;
-
-        tbody.innerHTML = "";
-
-        if (memoriCloudLokal.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted py-4">Belum ada riwayat kunjungan.</td></tr>`;
-            return;
-        }
-
-        // Render Data Berurutan (Terlama di atas, terbaru di bawah)
-        memoriCloudLokal.forEach((item, index) => {
-            const nomorUrut = index + 1;
-            const linkFotoDirect = convertDriveUrlToDirect(item.foto);
+        // B. PROSES DATA PEJABAT (GEN-Z CARDS)
+        containerPejabat.innerHTML = "";
+        hasil.dataPegawai.forEach(p => {
+            const isAvailable = p.available.toLowerCase() === 'yes';
+            const statusColor = isAvailable ? '#10b981' : '#94a3b8'; // Hijau vs Abu-abu
+            const statusLabel = isAvailable ? 'Tersedia' : 'Dinas Luar / Sibuk';
             
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td class="text-center fw-bold text-secondary">${nomorUrut}</td>
-                <td class="text-center">
-                    <img src="${linkFotoDirect}" class="img-table shadow-sm" onclick="viewPhoto('${linkFotoDirect}')" onerror="this.src='https://placehold.co/100x100?text=No+Photo'">
-                </td>
-                <td class="small fw-semibold text-secondary text-center">${item.waktu}</td>
-                <td class="fw-bold">${item.nama}</td>
-                <td><span class="badge bg-light text-dark border">${item.instansi}</span></td>
-                <td><a href="https://wa.me/${item.whatsapp}" target="_blank" class="text-decoration-none text-success"><i class="bi bi-whatsapp"></i> ${item.whatsapp}</a></td>
-                <td class="small fw-bold">${item.tujuan}</td>
-                <td class="small">${item.keperluan}</td>
-                <td>
-                    <div class="d-flex justify-content-center gap-2">
-                        <button class="btn btn-warning btn-sm btn-round text-dark border shadow-sm" onclick="bukaModalPinKpu(${index}, 'EDIT')" title="Edit Kunjungan">
-                            <i class="bi bi-pencil-fill"></i>
-                        </button>
-                        <button class="btn btn-danger btn-sm btn-round shadow-sm" onclick="bukaModalPinKpu(${index}, 'DELETE')" title="Hapus Kunjungan">
-                            <i class="bi bi-trash-fill"></i>
-                        </button>
+            const card = document.createElement('div');
+            card.className = "col-md-6 col-lg-4";
+            card.innerHTML = `
+                <div class="card border-0 shadow-sm p-3 h-100" style="border-radius: 16px; background: #fff;">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" 
+                             style="width: 50px; height: 50px; background: ${isAvailable ? '#4f46e5' : '#64748b'}; font-size: 1.2rem;">
+                            ${p.nama.charAt(0)}
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="mb-0 fw-bold text-dark">${p.nama}</h6>
+                            <small class="text-muted d-block" style="font-size: 0.75rem;">${p.jabatan}</small>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge" style="background: ${statusColor}20; color: ${statusColor}; font-size: 0.7rem; border: 1px solid ${statusColor}40;">
+                                <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i> ${statusLabel}
+                            </span>
+                        </div>
                     </div>
-                </td>
+                </div>
             `;
-            tbody.appendChild(tr);
+            containerPejabat.appendChild(card);
         });
+
     } catch (error) {
-        tbody.innerHTML = `<tr><td colspan="9" class="text-center text-danger py-4">⚠️ Gagal mengambil data Cloud. Silakan refresh halaman.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center text-danger py-4">Gagal Cloud.</td></tr>`;
     }
 }
 
