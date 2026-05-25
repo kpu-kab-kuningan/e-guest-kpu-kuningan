@@ -160,7 +160,7 @@ function renderKartuPejabat(dataArray) {
     dataArray.forEach(p => {
         const isAvailable = p.available.toLowerCase() === 'yes';
         const statusColor = isAvailable ? '#10b981' : '#94a3b8'; 
-        const statusLabel = isAvailable ? 'Tersedia' : 'Dinas Luar / Sibuk';
+        const statusLabel = isAvailable ? 'Available' : 'Dinas Luar / Sibuk';
         
         const card = document.createElement('div');
         card.className = "col-md-6 col-lg-4";
