@@ -325,7 +325,7 @@ function mintaAksesKelolaStatus() {
     bukaModalPinKpu(null, 'MANAGE_PEJABAT');
 }
 
-// Buka Modal Pop-up Dropdown Pejabat (FITUR BARU)
+// Buka Modal Pop-up Dropdown Pejabat (Versi Super Compact)
 function eksekusiBukaModalKelolaStatus() {
     const tbody = document.getElementById('tabel-edit-status-body');
     if (!tbody) return;
@@ -335,11 +335,13 @@ function eksekusiBukaModalKelolaStatus() {
         const isYes = p.available.toLowerCase() === 'yes';
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td class="fw-bold text-dark ps-3" style="font-size: 0.9rem; white-space:nowrap;">${p.nama}</td>
-            <td>
-                <select class="form-select form-select-sm select-status-pejabat btn-round shadow-none" data-nama="${p.nama}" style="font-size: 0.85rem; border-color:#cbd5e1;">
-                    <option value="Yes" ${isYes ? 'selected' : ''}>🟢 Tersedia (Yes)</option>
-                    <option value="No" ${!isYes ? 'selected' : ''}>🔴 Dinas Luar / Sibuk (No)</option>
+            <td class="fw-bold text-dark ps-3 py-2" style="font-size: 0.85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${p.nama}">
+                ${p.nama}
+            </td>
+            <td class="py-2 text-center">
+                <select class="form-select form-select-sm select-status-pejabat btn-round shadow-none mx-auto py-1" data-nama="${p.nama}" style="font-size: 0.75rem; border-color:#cbd5e1; max-width: 125px; padding-left: 6px; padding-right: 24px;">
+                    <option value="Yes" ${isYes ? 'selected' : ''}>🟢 Tersedia</option>
+                    <option value="No" ${!isYes ? 'selected' : ''}>🔴 Sibuk</option>
                 </select>
             </td>
         `;
