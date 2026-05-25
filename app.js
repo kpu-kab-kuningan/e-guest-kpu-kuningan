@@ -325,27 +325,36 @@ function mintaAksesKelolaStatus() {
     bukaModalPinKpu(null, 'MANAGE_PEJABAT');
 }
 
-// Buka Modal Pop-up Dropdown Pejabat (Versi Super Compact)
+// Buka Modal Pop-up Kelola Status (Murni Versi Switch Dasi)
 function eksekusiBukaModalKelolaStatus() {
     const tbody = document.getElementById('tabel-edit-status-body');
     if (!tbody) return;
-    tbody.innerHTML = "";
+    tbody.innerHTML = ""; // Bersihkan data lama
 
     memoriPegawaiLokal.forEach((p) => {
         const isYes = p.available.toLowerCase() === 'yes';
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td class="fw-bold text-dark ps-3 py-2" style="font-size: 0.85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${p.nama}">
+        
+        // Buat baris pembungkus dengan sistem grid
+        const row = document.createElement('div');
+        row.className = "row g-0 align-items-center px-3 py-2 border-bottom";
+        
+        row.innerHTML = `
+            <div class="col-8 fw-bold text-dark text-truncate pe-2" style="font-size: 0.85rem;" title="${p.nama}">
                 ${p.nama}
-            </td>
-            <td class="py-2 text-center">
-                <select class="form-select form-select-sm select-status-pejabat btn-round shadow-none mx-auto py-1" data-nama="${p.nama}" style="font-size: 0.75rem; border-color:#cbd5e1; max-width: 125px; padding-left: 6px; padding-right: 24px;">
-                    <option value="Yes" ${isYes ? 'selected' : ''}>🟢 Tersedia</option>
-                    <option value="No" ${!isYes ? 'selected' : ''}>🔴 Sibuk</option>
-                </select>
-            </td>
+            </div>
+            
+            <div class="col-4 d-flex justify-content-center">
+                <div class="form-check form-switch m-0">
+                    <input class="form-check-input check-status-pejabat shadow-none" 
+                           type="checkbox" 
+                           role="switch" 
+                           data-nama="${p.nama}" 
+                           ${isYes ? 'checked' : ''} 
+                           style="cursor: pointer; width: 2.2em; height: 1.1em; transform: scale(1.1);">
+                </div>
+            </div>
         `;
-        tbody.appendChild(tr);
+        tbody.appendChild(row);
     });
 
     new bootstrap.Modal(document.getElementById('modalStatusPejabat')).show();
@@ -353,14 +362,14 @@ function eksekusiBukaModalKelolaStatus() {
 
 // Kirim Batch Perubahan Status Switch ke Google Sheet Cloud
 async function kirimPerubahanStatusCloud() {
-    // Ambil semua elemen checkbox/switch aktif
+    // Ambil semua elemen checkbox/switch aktif yang memiliki class .check-status-pejabat
     const checkboxes = document.querySelectorAll('.check-status-pejabat');
     const updates = [];
 
     checkboxes.forEach(chk => {
         updates.push({
             nama: chk.getAttribute('data-nama'),
-            // Jika dicentang (true) kirim "Yes", jika kosong (false) kirim "No"
+            // Jika dicentang (ON) kirim "Yes", jika kosong (OFF) kirim "No"
             available: chk.checked ? "Yes" : "No"
         });
     });
@@ -368,7 +377,7 @@ async function kirimPerubahanStatusCloud() {
     const btnSimpan = document.getElementById('btn-simpan-status-pejabat');
     const originalText = btnSimpan.innerHTML;
     btnSimpan.disabled = true;
-    btnSimpan.innerHTML = `<span class="spinner-border spinner-border-sm" role="status"></span> Menyimpan ke Cloud...`;
+    btnSimpan.innerHTML = `<span class="spinner-border spinner-border-sm" role="status"></span> Menyimpan...`;
 
     try {
         const response = await fetch(SCRIPT_URL, {
@@ -383,9 +392,9 @@ async function kirimPerubahanStatusCloud() {
         const hasil = await response.json();
         if (hasil.status !== 'success') throw new Error(hasil.message);
 
-        alert("✓ Sukses! Status ketersediaan pejabat berhasil diperbarui di Cloud KPU Kuningan.");
+        alert("✓ Sukses! Status ketersediaan pejabat berhasil diperbarui.");
         bootstrap.Modal.getInstance(document.getElementById('modalStatusPejabat')).hide();
-        loadDashboard();
+        loadDashboard(); // Refresh data halaman utama
 
     } catch (error) {
         console.error("Error update status pejabat:", error);
